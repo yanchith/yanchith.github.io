@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='description' content='Subdigital studio meets Wave Function Collapse.'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+
+  <meta name='twitter:card' content='summary'>
+  <meta name='twitter:site' content='@yanchith'>
+  <meta name='twitter:title' content='Yan Toth'>
+  <meta name='twitter:description' content='Yan Toth is a creative programmer'>
+  <meta name='twitter:creator' content='@yanchith'>
+  <!-- TODO(yan): Icon -->
+  <!-- <meta name='twitter:image' content='https://100r.co/media/services/icon.jpg'> -->
+
+  <!-- TODO(yan): open graph -->
+
+  <!-- TODO(yyan): favicon -->
+  <!-- <link rel='icon' type='image/x-icon' href='../media/services/favicon.ico'> -->
+
+  <title>Yan Tóth</title>
+  <link rel='stylesheet' type='text/css' href='./main.css'>
+</head>
+<body>
+
+  <header>
+    <a id='header-logo' href='index.html'>Yan Tóth</a>
+  </header>
+
+  <main>
+    <section>
+      <div>
+        <h1>About</h1>
+        <p class='mt25'>
+          I am a programmer and researcher in love with game development,
+          computer graphics, geometry and compilers.
+        </p>
+      </div>
+      <picture>
+        <source type='image/webp' sizes='100vw'
+                srcset='./e2_tower_01-mobile-half.webp 1000w, ./e2_tower_01-desktop-half.webp 1200w' />
+        <img src='./e2_tower_01-desktop-half.jpg' sizes='100vw'
+             srcset='./e2_tower_01-mobile-half.jpg 1000w, ./e2_tower_01-desktop-half.jpg 1200w' />
+      </picture>
+    </section>
+
+    <!-- TODO(yan): Computational (TM) background... countour lines? -->
+    <!--
+        TODO(yan): List projects.
+
+        - WFC Plugin with Subdigital
+        - Hurban Selector with Janper & Subdigital
+        - HBR Bratislava with Janper & Subdigital
+        - Walkers with Janper & Subdigital
+        - Webglutenfree?
+
+      -->
+    <!-- TODO(yan): WebP -->
+
+    <section>
+      <div>
+        <h1>Wave Function Collapse</h1>
+        <h2>A WFC Solver and Grasshopper plugin with Subdigital</h2>
+        <p class='mt25'>
+          <!-- TODO(yan): Link to Subdigital -->
+          <!-- TODO(yan): Link to Subdigital WFC -->
+          <!-- TODO(yan): Link to repository once published -->
+          <!-- TODO(yan): Links to WFC, Maxim and Oskar -->
+          <!-- TODO(yan): Check name spelling -->
+          In 2020, Subdigital hosted a summer intership with the aim to develop
+          and utilize a discrete materialization method of data-driven design
+          with available fabrication technology. We picked a method already well
+          known in the game development industry thanks to people like Maxim
+          Gumin and Oskar Stalberg, but still reasonably under-exploited at the
+          time in the fields of computational design and architecture: Wave
+          Function Collapse.
+        </p>
+        <p>
+          Ján Pernecký and I created the software tools necessary for the
+          intersnhip students to experiment with the method. We opted to make
+          the WFC solver a plugin for Grasshopper, an node based programming
+          language for computationally creating shapes and forms.
+        </p>
+        <p>
+          While Ján Pernecký tackled the UI of the tool (a much harder problem
+          deserving its own blog post), I worked mostly on the WFC Solver
+          itself. To enable fast iteration for designers, we knew the tool
+          needed to respond to parameter changes almost real-time. The heavy
+          lifting was therefore implemented in Rust and loaded into Grasshopper
+          as a DLL. Inside the library itself, WFC slots and the modules they
+          contained were represented as compact bit vectors of 256 bits and
+          operated on by just a handful of bitwise instructions and bit-counting
+          intrinsics. While initially worried about the 256 limit on the WFC
+          module count, our students' projects never reached this limit in
+          practice.
+        </p>
+      </div>
+      <picture>
+        <!-- <source type='image/webp' sizes='100vw' -->
+        <!--         srcset='./wfc.webp 1000w' /> -->
+        <img src='./wfc.png' sizes='100vw'
+             srcset='./wfc.png 1000w' />
+      </picture>
+    </section>
+
+    <section>
+      <div>
+        <h1>H.U.R.B.A.N. Selector</h1>
+        <h2>An experimental procedural geometry modeling and morphing tool</h2>
+        <p class='mt25'>
+          H.U.R.B.A.N Selector is a software experiment sponsored by the Slovak
+          Design Center. It is meant to test the hypothesis that creating new
+          designs and shapes is subconsciously inspired by our previous
+          experience. There is a trial and error phase in the design process
+          where many variations on the same shape are prototyped and chosen
+          from.
+        </p>
+
+        <p>
+          The software is currently in very early stages, but as it nears
+          completion, it will strive to be a tool for simple parametric
+          modeling, containing implementations of various morphing strategies
+          for mesh models, allowing designers to smoothly interpolate between
+          multiple mesh geometries and select the result with the most desired
+          features.
+        </p>
+      </div>
+      <picture>
+        <!-- <source type='image/webp' sizes='100vw' -->
+        <!--         srcset='./hurban_selector.webp 1000w' /> -->
+        <img src='./hurban_selector.png' sizes='100vw'
+             srcset='./hurban_selector.png 1000w' />
+      </picture>
+    </section>
+  </main>
+
+  <footer>
+    <p>Yan Tóth</p>
+    <p>TODO(yan): Contact email, github profile, twitter profile</p>
+  </footer>
+</body>
+</html>
