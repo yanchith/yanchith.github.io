@@ -132,6 +132,60 @@
              srcset='./hurban_selector.png 1000w' />
       </picture>
     </section>
+
+    <section>
+      <div>
+        <h1>Bratislava 2022 Model</h1>
+        <h2>Interactive urban model of Bratislava, Slovakia</h2>
+        <!-- TODO(yan): BA2022 link -->
+        <!-- TODO(yan): Subdigital link -->
+        <!-- TODO(yan): Abaffy link -->
+        <!-- TODO(yan): HB Reavis link -->
+        <p class='mt25'>
+          The BA 2022 model is a commercial project I worked on with Subdigital
+          and Abaffy Design for HB Reavis in 2017. It fuses design, engineering
+          and software to explain the connection of large real-estate
+          development to its surroundings in the city of Bratislava. The model's
+          3x4K screen displays a stylized animated map of the city. The
+          presenter interacts with the model via a connected mobile tablet and
+          controls what the map shows.
+        </p>
+
+        <p>
+          While not initially intended, the "engine" in the model ended up being
+          mostly a compositor of animated layers (each internally running its
+          simulation) that could be turned on and off individually. Blending
+          animated layers was a simple mental model of representing features in
+          the software.
+        </p>
+
+        <p>
+          Even in idling state with no active highlights set by
+          the presenter, the model still displays a lot of PRNG-guided moving
+          elements like transportation and pedestrians. While we knew we would
+          have a powerful computer available, we still wanted to be conservative
+          with the CPU and GPU budget so we employed partial specialization and
+          precomputed simulation and animation data offline whenever possible.
+        </p>
+
+        <p>
+          Because of the requirement to render html and the fact that the team
+          was mostly familiar with web technologies at the time, the software in
+          the model runs on (carefully written) Javascript and paints pixels via
+          WebGL and a small amount of SVG rendered by Chromium. While that
+          wouldn't be my choice for what is basically an embedded project today,
+          I am still grateful for the iteration speed that gave us.
+        </p>
+      </div>
+      <picture>
+        <!-- TODO(yan): Picture credits -->
+        <!-- <source type='image/webp' sizes='100vw' -->
+        <!--         srcset='./hurban_selector.webp 1000w' /> -->
+        <img class="filter-invert"
+             src='./BA2022.png' sizes='100vw'
+             srcset='./BA2022.png 1000w' />
+      </picture>
+    </section>
   </main>
 
   <footer>

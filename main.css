@@ -108,6 +108,10 @@ body footer {
     margin-top: 25px;
 }
 
+.filter-invert {
+    filter: invert(100%);
+}
+
 /* -- breakpoints -- */
 
 @media (max-width: 1200px) {
