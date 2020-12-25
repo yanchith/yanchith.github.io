@@ -1,105 +1,111 @@
 <!DOCTYPE html>
-<html lang='en'>
+<html lang="en">
 <head>
-  <meta charset='utf-8'>
-  <meta name='description' content='Subdigital studio meets Wave Function Collapse.'>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <meta charset="utf-8">
+  <meta name="description" content="Subdigital studio meets Wave Function Collapse.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta name='twitter:card' content='summary'>
-  <meta name='twitter:site' content='@yanchith'>
-  <meta name='twitter:title' content='Yan Toth'>
-  <meta name='twitter:description' content='Yan Toth is a creative programmer'>
-  <meta name='twitter:creator' content='@yanchith'>
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@yanchith">
+  <meta name="twitter:title" content="Yan Toth">
+  <meta name="twitter:description" content="Yan Toth is a creative programmer">
+  <meta name="twitter:creator" content="@yanchith">
   <!-- TODO(yan): Icon -->
   <!-- <meta name='twitter:image' content='https://100r.co/media/services/icon.jpg'> -->
 
-  <!-- TODO(yan): open graph -->
+  <!-- TODO(yan): Open Graph -->
 
-  <!-- TODO(yyan): favicon -->
+  <!-- TODO(yyan): Favicon -->
   <!-- <link rel='icon' type='image/x-icon' href='../media/services/favicon.ico'> -->
 
   <title>Yan Tóth</title>
-  <link rel='stylesheet' type='text/css' href='./main.css'>
+  <link rel="stylesheet" type="text/css" href="./main.css">
 </head>
 <body>
 
   <header>
-    <a id='header-logo' href='index.html'>Yan Tóth</a>
+    <a href="index.html"><h1>Yan Tóth<h1></a>
   </header>
 
   <main>
     <section>
       <div>
-        <h1>About</h1>
-        <p class='mt25'>
-          I am a programmer and researcher in love with game development,
-          computer graphics, geometry and compilers.
+        <p>
+          I am an independent programmer and researcher in love with game
+          development, computer graphics and compilers.
+        </p>
+        <p>
+          I've been programming since 2009, and since 2016 I have predominantly
+          worked on computer graphics and digital arts projects, such as
+          the <a href="https://www.vectary.com/">Vectary</a> online 3D editor,
+          the <a href="https://www.dungeonfog.com/">DungeonFog</a> map editor,
+          and various interactive models and installations with
+          <a href="https://sub.digital">Subdigital</a>.
+        </p>
+
+        <p>
+          I believe in first principles thinking, and that programmers should
+          not be adding incidental complexity to the software they create. I do
+          have an academic appreciation for strange things, but lately I prefer
+          simpler tools where the programmer can more easily understand what is
+          going on. To that end, I enjoy using Rust whenever I can, and C or
+          TypeScript otherwise.
         </p>
       </div>
-      <picture>
-        <source type='image/webp' sizes='100vw'
-                srcset='./e2_tower_01-mobile-half.webp 1000w, ./e2_tower_01-desktop-half.webp 1200w' />
-        <img src='./e2_tower_01-desktop-half.jpg' sizes='100vw'
-             srcset='./e2_tower_01-mobile-half.jpg 1000w, ./e2_tower_01-desktop-half.jpg 1200w' />
-      </picture>
     </section>
 
-    <!-- TODO(yan): Computational (TM) background... countour lines? -->
-    <!--
-        TODO(yan): List projects.
+    <h1>My Works</h1>
 
-        - WFC Plugin with Subdigital
-        - Hurban Selector with Janper & Subdigital
-        - HBR Bratislava with Janper & Subdigital
-        - Walkers with Janper & Subdigital
-        - Webglutenfree?
-
-      -->
-    <!-- TODO(yan): WebP -->
+    <!-- TODO(yan): List more projects: Walkers? Webglutenfree? -->
+    <!-- TODO(yan): Use WebP for images -->
 
     <section>
       <div>
         <h1>Wave Function Collapse</h1>
         <h2>A WFC Solver and Grasshopper plugin with Subdigital</h2>
-        <p class='mt25'>
-          <!-- TODO(yan): Link to Subdigital -->
-          <!-- TODO(yan): Link to Subdigital WFC -->
-          <!-- TODO(yan): Link to repository once published -->
-          <!-- TODO(yan): Links to WFC, Maxim and Oskar -->
-          <!-- TODO(yan): Check name spelling -->
-          In 2020, Subdigital hosted a summer intership with the aim to develop
-          and utilize a discrete materialization method of data-driven design
-          with available fabrication technology. We picked a method already well
-          known in the game development industry thanks to people like Maxim
-          Gumin and Oskar Stalberg, but still reasonably under-exploited at the
-          time in the fields of computational design and architecture: Wave
-          Function Collapse.
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <!-- TODO(yan): Link to Subdigital WFC website -->
+        <!-- TODO(yan): Link to Subdigital WFC repository -->
+        <p class="mt25">
+          In 2020, <a href="https://sub.digital">Subdigital</a> hosted a summer
+          intership with the aim to develop and utilize a discrete
+          materialization method of data-driven design with available
+          fabrication technology. We picked Wave Function Collapse - a method
+          already well known in the game development community thanks to people
+          like <a href="https://twitter.com/ExUtumno">Maxim Gumin</a>
+          and <a href="https://twitter.com/OskSta">Oskar Stålberg</a>, but still
+          somewhat under-exploited at the time in the fields of computational
+          design and architecture.
         </p>
         <p>
           Ján Pernecký and I created the software tools necessary for the
           intersnhip students to experiment with the method. We opted to make
-          the WFC solver a plugin for Grasshopper, an node based programming
-          language for computationally creating shapes and forms.
+          the WFC solver a plugin
+          for <a href="https://www.grasshopper3d.com/">Grasshopper</a>, an node
+          based programming language for computationally creating shapes and
+          forms.
         </p>
         <p>
-          While Ján Pernecký tackled the UI of the tool (a much harder problem
+          While Ján Pernecký tackled the UI of the tool (a hard problem
           deserving its own blog post), I worked mostly on the WFC Solver
           itself. To enable fast iteration for designers, we knew the tool
-          needed to respond to parameter changes almost real-time. The heavy
-          lifting was therefore implemented in Rust and loaded into Grasshopper
-          as a DLL. Inside the library itself, WFC slots and the modules they
-          contained were represented as compact bit vectors of 256 bits and
-          operated on by just a handful of bitwise instructions and bit-counting
-          intrinsics. While initially worried about the 256 limit on the WFC
-          module count, our students' projects never reached this limit in
-          practice.
+          needed to respond to parameter changes quickly, ideally real-time. The
+          heavy lifting is therefore implemented in Rust and loaded into
+          Grasshopper as a DLL. Inside the library itself, WFC slots and the
+          modules they contained were represented as compact bit vectors of 256
+          bits and operated on by just a handful of bitwise instructions and
+          bit-counting intrinsics. While initially worried about the 256 limit
+          on the WFC module count, the students' projects never reached this
+          limit in practice.
         </p>
       </div>
       <picture>
-        <!-- <source type='image/webp' sizes='100vw' -->
-        <!--         srcset='./wfc.webp 1000w' /> -->
-        <img src='./wfc.png' sizes='100vw'
-             srcset='./wfc.png 1000w' />
+        <img src="./wfc.png" sizes="100vw"
+             srcset="./wfc.png 1000w"
+             alt="WFC schematics; picture courtesy of Kristýna Uhrová & Subdigital" />
+        <p>WFC schematics; picture courtesy of Kristýna Uhrová & Subdigital</p>
       </picture>
     </section>
 
@@ -107,29 +113,34 @@
       <div>
         <h1>H.U.R.B.A.N. Selector</h1>
         <h2>An experimental procedural geometry modeling and morphing tool</h2>
-        <p class='mt25'>
-          H.U.R.B.A.N Selector is a software experiment sponsored by the Slovak
-          Design Center. It is meant to test the hypothesis that creating new
-          designs and shapes is subconsciously inspired by our previous
-          experience. There is a trial and error phase in the design process
-          where many variations on the same shape are prototyped and chosen
-          from.
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <p class="mt25">
+          <a href="https://github.com/subdgtl/HURBAN-Selector">H.U.R.B.A.N
+          Selector</a> is a software experiment sponsored by
+          the <a href="https://www.scd.sk/">Slovak Design Center</a>. It is
+          meant to test the hypothesis that creating new designs and shapes is
+          subconsciously inspired by our previous experience. There is a trial
+          and error phase in the design process where many variations on the
+          same shape are prototyped and chosen from.
         </p>
 
         <p>
-          The software is currently in very early stages, but as it nears
-          completion, it will strive to be a tool for simple parametric
-          modeling, containing implementations of various morphing strategies
-          for mesh models, allowing designers to smoothly interpolate between
-          multiple mesh geometries and select the result with the most desired
-          features.
+          The software currently has many rough edges (mostly on the usability
+          side), but as it nears completion, it will strive to be a tool for
+          simple parametric modeling, containing implementations of various
+          morphing strategies for mesh models, allowing designers to smoothly
+          interpolate between multiple mesh geometries and select the result
+          with the most desired features.
         </p>
+
+        <!-- TODO(yan): Discuss implementation architecture -->
       </div>
       <picture>
-        <!-- <source type='image/webp' sizes='100vw' -->
-        <!--         srcset='./hurban_selector.webp 1000w' /> -->
-        <img src='./hurban_selector.png' sizes='100vw'
-             srcset='./hurban_selector.png 1000w' />
+        <img src="./hurban_selector.png" sizes="100vw"
+             srcset="./hurban_selector.png 1000w" />
+        <p>Screenshot of a model morph in H.U.R.B.A.N. Selector</p>
       </picture>
     </section>
 
@@ -137,60 +148,66 @@
       <div>
         <h1>Bratislava 2022 Model</h1>
         <h2>Interactive urban model of Bratislava, Slovakia</h2>
-        <!-- TODO(yan): BA2022 link -->
-        <!-- TODO(yan): Subdigital link -->
-        <!-- TODO(yan): Abaffy link -->
-        <!-- TODO(yan): HB Reavis link -->
-        <p class='mt25'>
-          The BA 2022 model is a commercial project I worked on with Subdigital
-          and Abaffy Design for HB Reavis in 2017. It fuses design, engineering
-          and software to explain the connection of large real-estate
-          development to its surroundings in the city of Bratislava. The model's
-          3x4K screen displays a stylized animated map of the city. The
-          presenter interacts with the model via a connected mobile tablet and
-          controls what the map shows.
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <!-- TODO(yan): Abaffy Design link -->
+        <p class="mt25">
+          The <a href="https://sub.digital/project02">BA 2022 model</a> is a
+          commercial project I worked on
+          with <a href="https://sub.digital">Subdigital</a> and Abaffy Design
+          for <a href="https://hbreavis.com/">HB Reavis</a> in 2017. It fuses
+          design, engineering and software to explain the connection of large
+          real-estate development to its surroundings in the city of
+          Bratislava. The model's 3x4K screen shows a stylized animated map of
+          the city. The presenter interacts with the model via a connected
+          mobile tablet and controls what the map shows.
         </p>
 
         <p>
-          While not initially intended, the "engine" in the model ended up being
-          mostly a compositor of animated layers (each internally running its
-          simulation) that could be turned on and off individually. Blending
-          animated layers was a simple mental model of representing features in
-          the software.
+          While not initially intended, the engine in the model ended up being
+          mostly a compositor of animated layers (each potentially running
+          internal simulations) that could be turned on and off
+          individually. Blending animated layers was a simple mental model for
+          representing features in the engine - every usar-visible feature is a
+          either an data-controlled animated layer or a blend thereof.
         </p>
 
         <p>
-          Even in idling state with no active highlights set by
-          the presenter, the model still displays a lot of PRNG-guided moving
-          elements like transportation and pedestrians. While we knew we would
-          have a powerful computer available, we still wanted to be conservative
-          with the CPU and GPU budget so we employed partial specialization and
-          precomputed simulation and animation data offline whenever possible.
+          Even in idling state with no active highlights set by the presenter,
+          the model still displays a lot of PRNG-guided moving elements like
+          transportation and pedestrians. While we knew we would have a powerful
+          desktop computer available, we still wanted to be conservative with
+          the CPU and GPU budget so we partially specialized and precomputed
+          simulation and animation data offline whenever possible.
         </p>
 
         <p>
-          Because of the requirement to render html and the fact that the team
-          was mostly familiar with web technologies at the time, the software in
-          the model runs on (carefully written) Javascript and paints pixels via
-          WebGL and a small amount of SVG rendered by Chromium. While that
-          wouldn't be my choice for what is basically an embedded project today,
-          I am still grateful for the iteration speed that gave us.
+          Because of the requirement to render HTML and the fact that the team
+          was mostly familiar with web technologies at the time, the engine in
+          runs on (carefully written) TypeScript paints pixels via WebGL and a
+          small amount of Chromium-rendered SVG. While that wouldn't be my
+          choice for what is basically an embedded project today, I am still
+          grateful for the iteration speed it gave us.
         </p>
       </div>
       <picture>
-        <!-- TODO(yan): Picture credits -->
-        <!-- <source type='image/webp' sizes='100vw' -->
-        <!--         srcset='./hurban_selector.webp 1000w' /> -->
         <img class="filter-invert"
-             src='./BA2022.png' sizes='100vw'
-             srcset='./BA2022.png 1000w' />
+             src="./BA2022.png" sizes="100vw"
+             srcset="./BA2022.png 1000w"
+             alt="BA 2022 Model; picture courtesy of Subdigital" />
+        <p>BA 2022 Model; picture courtesy of Subdigital</p>
       </picture>
     </section>
   </main>
 
   <footer>
     <p>Yan Tóth</p>
-    <p>TODO(yan): Contact email, github profile, twitter profile</p>
+    <ul>
+      <li>yanchi.toth@gmail.com</li>
+      <li><a href="https://github.com/yanchith/">github.com/yanchith/</li>
+      <li><a href="https://twitter.com/yanchith">twitter.com/yanchith/</li>
+    </ul>
   </footer>
 </body>
 </html>
