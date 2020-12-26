@@ -26,13 +26,6 @@
     font-style: normal;
 }
 
-@font-face {
-    font-family: "IBMPlexMono-LightItalic";
-    src: url("./IBMPlexMono-LightItalic.ttf") format("truetype");
-    font-weight: normal;
-    font-style: italic;
-}
-
 html {
     background: white;
 }
