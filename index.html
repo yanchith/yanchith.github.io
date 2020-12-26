@@ -47,14 +47,14 @@
           I believe in first principles thinking, and that programmers should
           not be adding incidental complexity to the software they create. I do
           have an academic appreciation for strange things, but lately I prefer
-          simpler tools where the programmer can more easily understand what is
-          going on. To that end, I enjoy using Rust whenever I can, and C or
-          TypeScript otherwise.
+          simpler tools where the programmer can understand what is going on
+          under the hood. To that end, I enjoy using Rust whenever I can, and C
+          or TypeScript otherwise.
         </p>
       </div>
     </section>
 
-    <h1>My Works</h1>
+    <h1>Works</h1>
 
     <!-- TODO(yan): List more projects: Walkers? Webglutenfree? -->
     <!-- TODO(yan): Use WebP for images -->
@@ -114,12 +114,16 @@
         <h1>H.U.R.B.A.N. Selector</h1>
         <h2>An experimental procedural geometry modeling and morphing tool</h2>
       </div>
+
       <div><!-- EMPTY --></div>
+
       <div>
         <p class="mt25">
           <a href="https://github.com/subdgtl/HURBAN-Selector">H.U.R.B.A.N
-          Selector</a> is a software experiment sponsored by
-          the <a href="https://www.scd.sk/">Slovak Design Center</a>. It is
+          Selector</a> is a software experiment I work on with Ján Pernecký from
+          <a href="https://sub.digital">Subdigital</a>
+          and <a href="https://www.linkedin.com/in/ondrowan/">Ondrej Slinták</a>
+          for the <a href="https://www.scd.sk/">Slovak Design Center</a>. It is
           meant to test the hypothesis that creating new designs and shapes is
           subconsciously inspired by our previous experience. There is a trial
           and error phase in the design process where many variations on the
@@ -128,19 +132,86 @@
 
         <p>
           The software currently has many rough edges (mostly on the usability
-          side), but as it nears completion, it will strive to be a tool for
-          simple parametric modeling, containing implementations of various
-          morphing strategies for mesh models, allowing designers to smoothly
-          interpolate between multiple mesh geometries and select the result
-          with the most desired features.
+          side), but it will strive to be a tool for simple parametric modeling,
+          containing implementations of various morphing strategies for mesh
+          models, allowing designers to smoothly interpolate between multiple
+          mesh geometries and select the result with the most desired features.
         </p>
 
-        <!-- TODO(yan): Discuss implementation architecture -->
+        <p>
+          Following the explicit history lineage
+          of <a href="https://www.grasshopper3d.com/">Grasshopper</a>, we
+          decided that every decision the user makes in the editor should not
+          only be undo-able, but also modifiable at any point. The geometry
+          displayed in the viewport is just the result of applying operations on
+          the initially empty world. These operations can create or import
+          geometry, or transform existing geometries in some way, e.g. perform
+          iterative Laplace Relaxation.
+        </p>
       </div>
+
       <picture>
         <img src="./hurban_selector.png" sizes="100vw"
              srcset="./hurban_selector.png 1000w" />
         <p>Screenshot of a model morph in H.U.R.B.A.N. Selector</p>
+      </picture>
+
+      <div>
+        <p>
+          Exposing the declarative nature of editing to the user freed us to
+          utilize a well specified thought model of having an interpreter that
+          evaluates a directed acyclic graph of possibly interdependent
+          operations. Naturally, we didn't want to execute the whole graph of
+          possibly heavy operations on every change to its definition. Simple
+          tricks such as ID-ing the operations instances by their operation type
+          and parameter values allowed us to preserve sub-graphs of computation
+          from previous interactions and only recompute the minimal necessary
+          set of operations.
+        </p>
+
+        <p>
+          I was surprised to learn that the UI of some 3D modeling tools
+          (e.g. Rhino, Blender) can freeze up when performing computations on
+          heavy geometries. We knew from the start that some of the topology
+          traversal algorithms necessary to implement the strategy of morphing
+          we initially wanted to do won't have great time complexity, and
+          therefore opted to run the graph interpreter in its own thread and
+          design the UI around this asynchrony from the get-go. As these things
+          usually go, we did't implement the topology based approach to morphing
+          in the end, but at least as a positive side effect the editor doesn't
+          freeze up. Mostly.
+        </p>
+
+        <p>
+          The editor itself is written in the Rust programming language, with
+          the use of a few libraries
+          (<a href="https://github.com/subdgtl/HURBAN-Selector/blob/master/Cargo.toml">Cargo.toml</a>).
+          This certainly proved to be a lot of work, but has paid of in some
+          areas - for instance our implementation of some geometry algorithms
+          already outperforms Rhino. Overall the balance between using existing
+          solutions and making something from scratch is tough to strike.
+        </p>
+
+        <p>
+          H.U.R.B.A.N. Selector proved to be a lot of work and as our funding
+          was nearing end, we had to sacrifice some of the things we wanted to
+          do. Most notably, we are really unhappy with the current user
+          interface. One of the first things we would do when working on the
+          project again would be to openly admit to and promote the graph
+          structure of the geometry definition, and allow the user to model
+          geometry via a node-based programming environment similar to
+          Grasshopper or Unreal Blueprints.
+        </p>
+      </div>
+
+      <picture>
+        <img src="./hurban_selector-screenshot.png" sizes="100vw"
+             srcset="./hurban_selector-screenshot.png 1000w" />
+        <p>
+          Screenshot of Simplex Noise generated scalar field materialized via
+          Marching Cubes and smoothed by Loop Subdivision in
+          H.U.R.B.A.N. Selector
+        </p>
       </picture>
     </section>
 
