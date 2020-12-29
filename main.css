@@ -45,7 +45,8 @@ body {
 header h1 {
     margin-top: 50px;
     margin-bottom: 50px;
-    font-size: 40px;
+    font-size: 45px;
+    font-weight: bolder;
 }
 
 /* -- main section -- */
@@ -53,7 +54,8 @@ header h1 {
 main h1 {
     margin-top: 50px;
     margin-bottom: 50px;
-    font-size: 40px;
+    font-size: 45px;
+    font-weight: bolder;
 }
 
 main a {
@@ -75,13 +77,14 @@ main section img {
 }
 
 main section p {
-    font-size: 20px;
+    font-size: 18px;
     margin-bottom: 25px;
 }
 
 main section picture > p {
     font-size: 14px;
     text-align: center;
+    margin-top: 25px;
 }
 
 main section h1 {
@@ -98,8 +101,12 @@ main section h2 {
 
 /* -- footer -- */
 
-body footer {
+footer {
     margin-top: 100px;
+}
+
+footer p {
+    font-size: 18px;
 }
 
 /* -- reusable things -- */
