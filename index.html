@@ -218,6 +218,53 @@
 
     <section>
       <div>
+        <h1>Walkers</h1>
+        <h2>Interactive installation</h2>
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <p class="mt25">
+          <a href="https://issuu.com/subdigital/docs/subdigital_studio/80">Walkers</a>
+          is a single purpose interactive installation built by Ján Pernecký and
+          me to support
+          an <a href="https://www.archinfo.sk/kalendarium/julia-jurinova-denniky.html">exhibition
+          of Júlia Jurinová</a> in 2018. We scanned people walking around the
+          exhibition with Kinect and asynchronously processed their point cloud
+          data to be interpolable by matching vertices between scan
+          frames. Finally, we projected the frame interpolations of the
+          collected scans on a wall in slow motion, rendered as particles with
+          CRT persistence post-processing effect applied to make them look
+          ghostly, each visitor leaving an imprint of themselves behind.
+        </p>
+
+        <p>
+          Because this was a one-shot project with an extremely narrow scope,
+          the whole creation process took about a week and we threw many of the
+          coding "best practices" out of the window. There was no code review or
+          code sharing, we worked on separate parts (Ján on geometry processing
+          and me on rendering) with just a shared directory on the file system
+          as the interaction API between our programs. Expecting to find a
+          horrible mess, I was surprised when I looked at the source for the
+          renderer program today. It is surprisingly clean and simple, does
+          exactly one thing and does it in a very concrete way, using just
+          the <a href="https://github.com/yanchith/webglutenfree">Webglutenfree</a>
+          library (built in-house for previous projects). While not really proud
+          for using Electron as the platform layer (and would probably hand-roll
+          a native platform layer today), it once again worked well.
+        </p>
+      </div>
+
+      <picture>
+        <img class="filter-invert-75"
+             src="./Walkers.png" sizes="100vw"
+             srcset="./Walkers.png 1000w"
+             alt="Screenshot from the Walkers installation" />
+        <p>Screenshot from the Walkers installation</p>
+      </picture>
+    </section>
+
+    <section>
+      <div>
         <h1>Bratislava 2022 Model</h1>
         <h2>Interactive urban model of Bratislava, Slovakia</h2>
       </div>
@@ -264,7 +311,7 @@
         </p>
       </div>
       <picture>
-        <img class="filter-invert"
+        <img class="filter-invert-100"
              src="./BA2022.png" sizes="100vw"
              srcset="./BA2022.png 1000w"
              alt="BA 2022 Model; picture courtesy of Subdigital" />

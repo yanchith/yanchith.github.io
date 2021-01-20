@@ -115,8 +115,12 @@ footer p {
     margin-top: 25px;
 }
 
-.filter-invert {
+.filter-invert-100 {
     filter: invert(100%);
+}
+
+.filter-invert-75 {
+    filter: invert(75%);
 }
 
 /* -- breakpoints -- */
