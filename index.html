@@ -32,7 +32,7 @@
       <div>
         <p>
           I am an independent programmer and researcher in love with virtual
-          worlds, game development, computer graphics and compilers.
+          worlds, game development, and compilers.
         </p>
         <p>
           I've been programming since 2009, and since 2016 I have predominantly
@@ -46,10 +46,10 @@
         <p>
           I believe in first principles thinking, and that programmers should
           not be adding incidental complexity to the software they create. I do
-          have an academic appreciation for strange things, but lately I prefer
-          simpler tools where the programmer can understand what is going on
-          under the hood. To that end, I enjoy using Rust whenever I can, and C
-          or TypeScript otherwise.
+          have an academic appreciation for strange and abstract things, but
+          lately I prefer simpler tools where the programmer can understand what
+          is going on under the hood. To that end, I enjoy using Rust whenever I
+          can, and C or TypeScript otherwise.
         </p>
       </div>
     </section>
@@ -67,7 +67,6 @@
       <div><!-- EMPTY --></div>
       <div>
         <!-- TODO(yan): Link to Subdigital WFC website -->
-        <!-- TODO(yan): Link to Subdigital WFC repository -->
         <p class="mt25">
           In 2020, <a href="https://sub.digital">Subdigital</a> hosted a summer
           internship with the aim to develop and utilize a discrete
@@ -79,6 +78,7 @@
           somewhat under-exploited at the time in the fields of computational
           design and architecture.
         </p>
+
         <p>
           Ján Pernecký and I created the software tools necessary for the
           internship students to experiment with the method. We opted to make
@@ -87,18 +87,30 @@
           based programming language for computationally creating shapes and
           forms.
         </p>
+
         <p>
-          While Ján Pernecký tackled the UI of the tool (a hard problem
-          deserving its own blog post), I worked mostly on the WFC Solver
-          itself. To enable fast iteration for designers, we knew the tool
-          needed to respond to parameter changes quickly, ideally real-time. The
-          heavy lifting is therefore implemented in Rust and loaded into
-          Grasshopper as a DLL. Inside the library itself, WFC slots and the
-          modules they contained were represented as compact bit vectors of 256
-          bits and operated on by just a handful of bitwise instructions and
-          bit-counting intrinsics. While initially worried about the 256 limit
-          on the WFC module count, the students' projects never reached this
-          limit in practice.
+          That initial summer exploration was later expanded on. Driven by usage
+          experience and over the course of many observations, Ján Pernecký
+          collapsed his original WFC tools
+          into <a href="https://github.com/subdgtl/Monoceros">Monoceros</a>, a
+          full fledged Grasshopper plugin written in C#.
+        </p>
+
+        <p>
+          While my own work on Monoceros amounted to mostly brainstorming and
+          rubber-ducking, I am glad it still uses the original solver from the
+          summer because of the optimization work that went into it. To enable
+          fast iteration for designers, we knew the tool needed to respond to
+          parameter changes quickly, ideally real-time. The heavy lifting is
+          therefore implemented in Rust and loaded into Grasshopper as a
+          DLL. Inside the library itself, WFC slots and the modules they
+          contained were represented as compact bit vectors of 256 bits and
+          operated on by just a handful of bitwise instructions and bit-counting
+          intrinsics. While initially worried about the 256 limit on the WFC
+          module count, the projects rarely reach this limit in practice. A
+          future extension might be to fall back to a less compact (and
+          therefore possibly slower) representation for definitions with large
+          module counts.
         </p>
       </div>
       <picture>
