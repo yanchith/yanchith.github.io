@@ -48,8 +48,7 @@
           not be adding incidental complexity to the software they create. I do
           have an academic appreciation for strange and abstract things, but
           lately I prefer simpler tools where the programmer can understand what
-          is going on under the hood. To that end, I enjoy using Rust whenever I
-          can, and C or TypeScript otherwise.
+          is going on under the hood.
         </p>
       </div>
     </section>
@@ -61,12 +60,71 @@
 
     <section>
       <div>
-        <h1>Wave Function Collapse</h1>
-        <h2>A WFC Solver and Grasshopper plugin with Subdigital</h2>
+        <h1>Celestial Fruit on Earthly Ground</h1>
+        <h2>Interactive online installation</h2>
       </div>
       <div><!-- EMPTY --></div>
       <div>
-        <!-- TODO(yan): Link to Subdigital WFC website -->
+        <p class="mt25">
+          I am particularly proud of my contribution to the realization of
+          <a href="https://celestialfruit.org">celestialfruit.org</a> with
+          <a href="https://jonathatnreus.com">Jonathan Reus</a>. The
+          installation is an ongoing and open interactive artwork. It’s
+          conceived as a living tapestry of visual and sonic traces gathered
+          through artistic collaborations and micro-commissions.
+        </p>
+
+        <p>
+          The work focuses on the five-string banjo, a historically complex
+          musical instrument that can be thought of as a map of
+          material-embodied cultures, packed with the stories and ideas of
+          people; their migrations and exchanges. Moving around through an
+          online virtual universe, the visitor navigates and reassembles these
+          elements in a way that mirrors the transmission and transformations of
+          culture itself as a living, moving, and complex entity. Besides the
+          interactive experience, the work also operates as a method and engine
+          for driving future collaborations at the meeting points of musical
+          instruments, technology, and tradition.
+        </p>
+
+        <p>
+          This collaboration flexed my programming muscles in more than one
+          way. It might be my first finished project where experimentation and
+          changing the feature set regularly was the golden standard instead of
+          an exception. During the three-month initial development period, I had
+          to keep some semblance of structure while not overoptimizing or
+          locking myself into a design corner. It sort of worked and I am not
+          terribly unhappy with the resulting codebase, although the amount of
+          cleanup tasks this produced is daunting. I am sure I'll get to that
+          backlog one day (:
+        </p>
+
+        <p>
+          Having to implement a data driven scene building system and an
+          animation system with simple scripting all over again makes me think
+          whether I should finally bite the bullet and learn a game engine like
+          Godot or Unreal instead of always rolling my own. I do admit that the
+          tight time constraints made me step outside of my comfort zone and use
+          way more framework-ey libraries than I otherwise would. The experience
+          was as expected: there were a lot of out-of-the-box features, and a
+          lot of out-of-the-box bugs. If I had to guess, the features still
+          outweighted the extra trouble, even if it made me grumpy at times.
+        </p>
+      </div>
+      <picture>
+          <img src="./gourd.png" sizes="100vw"
+               srcset="./gourd.png 1000w" />
+          <p>A gourd; There's quite a few in the installation, usually exploding</p>
+      </picture>
+    </section>
+
+    <section>
+      <div>
+        <h1>Monoceros</h1>
+        <h2>A Wave Function Collapse Solver and Grasshopper plugin</h2>
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
         <p class="mt25">
           In 2020, <a href="https://sub.digital">Subdigital</a> hosted a summer
           internship with the aim to develop and utilize a discrete
@@ -87,13 +145,16 @@
           based programming language for computationally creating shapes and
           forms.
         </p>
+      </div>
+      <div><!-- EMPTY --></div>
 
+      <div>
         <p>
           That initial summer exploration was later expanded on. Driven by usage
           experience and over the course of many observations, Ján Pernecký
           collapsed his original WFC tools
-          into <a href="https://github.com/subdgtl/Monoceros">Monoceros</a>, a
-          full fledged Grasshopper plugin written in C#.
+          into <a href="https://monoceros.sub.digital">Monoceros</a>, a full
+          fledged Grasshopper plugin.
         </p>
 
         <p>
@@ -114,11 +175,11 @@
         </p>
       </div>
       <picture>
-        <img src="./wfc.png" sizes="100vw"
-             srcset="./wfc.png 1000w"
-             alt="WFC schematics; picture courtesy of Kristýna Uhrová & Subdigital" />
-        <p>WFC schematics; picture courtesy of Kristýna Uhrová & Subdigital</p>
+          <img src="./voids.jpg" sizes="100vw"
+               srcset="./voids.jpg 1000w" />
+          <p>Bonn voids, designed with Monoceros; picture courtesy of Ján Pernecký & Subdigital</p>
       </picture>
+
     </section>
 
     <section>
@@ -269,8 +330,7 @@
       <picture>
         <img class="filter-invert-75"
              src="./Walkers.png" sizes="100vw"
-             srcset="./Walkers.png 1000w"
-             alt="Screenshot from the Walkers installation" />
+             srcset="./Walkers.png 1000w" />
         <p>Screenshot from the Walkers installation</p>
       </picture>
     </section>
@@ -325,8 +385,7 @@
       <picture>
         <img class="filter-invert-100"
              src="./BA2022.png" sizes="100vw"
-             srcset="./BA2022.png 1000w"
-             alt="BA 2022 Model; picture courtesy of Subdigital" />
+             srcset="./BA2022.png 1000w" />
         <p>BA 2022 Model; picture courtesy of Subdigital</p>
       </picture>
     </section>
