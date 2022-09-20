@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Project Pointy Hat is a block pushing puzzle game prototype">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- TODO(yan): Twitter, Opengraph, Favicon -->
+
+  <title>Project Pointy Hat</title>
+  <link rel="stylesheet" type="text/css" href="./main.css">
+</head>
+<body class="dark">
+
+  <header>
+    <a href="project-pointy-hat.html"><h1>Project Pointy Hat<h1></a>
+  </header>
+
+  <main>
+    <section>
+      <div>
+        <p>
+          Project Pointy Hat is a prototype of a block pushing puzzle game being
+          worked on by <a href="./index.html">me</a>
+          and <a href="#credits">friends</a>.
+        </p>
+        <p>
+          It was born out of a discussion
+          with <a href="https://twitter.com/fannasm">Stefan</a> and me. The idea
+          is to have an honest puzzle game (the
+          way <a href="https://twitter.com/mvandevander">Matthew VanDevander</a>
+          defines it), but with a CRPG feeling. That turned out to be rather
+          difficult.
+        </p>
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <p>
+          It has been a year since we started, and the game is very far from
+          done. In fact, there are still major design questions in the game that
+          need answering, but we promised our institutional patrons to release
+          something. So we are releasing a super raw version of the game from
+          the state it was in around August 2022. With the source.
+        </p>
+        <p>
+          Who is this for? At the moment, I don't think anyone besides hardcore
+          puzzle game players and programmers will enjoy what's inside these
+          packages - and in fact, hardcore puzzle gamers might think the game is
+          objectively bad and hardcore programmers might laugh at the source
+          code. The game looks like programmer art, doesn't sound like anything,
+          the order of levels doesn't facilitate learning of the mechanics, and
+          is an overall bad experience. The source code is in a weird state
+          too. A lot of the game is is still unformed, so I (the programmer)
+          have been keeping the code hot and easy to change. Thus only a small
+          number of tiny abstractions have crystallized so far. Notable
+          exceptions are: guise, the immediate mode UI library (not in tree, but
+          can already be
+          found <a href="https://github.com/yanchith/guise">here</a>), the
+          linear allocator (lfg_alloc), and the allocator-aware serialization
+          library (lfg_cereal). While structuring the code this way is very good
+          for me when working on it, this situation is likely bad for anyone
+          trying to extract structure and meaning from the code.
+        </p>
+      </div>
+      <picture>
+        <img src="./project-pointy-hat-ascii.png" sizes="100vw"
+             srcset="./project-pointy-hat-ascii.png 1000w" />
+        <p>What we thought the game was going to look like</p>
+      </picture>
+      <div>
+        <p>
+          That said, we still aspire to make this a good game. The kind that
+          people will find lots of interesting ideas in (our inspirations are
+          games by Thekla, Draknek, increpare and more), but also be able to
+          just slow down and take in this strange world we have built. And if we
+          manage to do that, we'll likely re-release the source without the art
+          assets in a much better form, so that future generations of people
+          brave enough to build games from scratch will have a few more examples
+          to look at.
+        </p>
+        <p>
+          Now, without further ado, let's break down the packages:
+          <p>
+              project-pointy-hat-win32.zip contains the Windows game executable and the
+              assets. It requires either D3D12 or Vulkan to run.
+          </p>
+          <p>
+              project-pointy-hat-source.zip contains the game source and the
+              assets. The game is written in a low-level subset of Rust, can be
+              built like a regular Cargo project. Everything should just work,
+              but if you are looking at this from the far future, things might
+              have bitrotted somewhat.
+          </p>
+        </p>
+      </div>
+      <picture>
+        <img src="./project-pointy-hat.png" sizes="100vw"
+             srcset="./project-pointy-hat.png 1000w" />
+        <p>What we think the game is going to look like</p>
+      </picture>
+    </section>
+
+    <section class="mt200">
+      <picture>
+        <img class="filter-invert-100"
+             src="./fpu.png" sizes="100vw"
+             srcset="./fpu.png 1000w" />
+        <p>Supported using public funding by Slovak Arts Council.</p>
+      </picture>
+    </section>
+
+    <section id="credits" class="mt200 mb500">
+      <div>
+        <h2>Credits</h2>
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <p>Stefan Mijučić: <a href="https://twitter.com/fannasm">@fannasm</a>, <a href="https://whitetower.info/">White Tower</a></p>
+        <p>Lenka Cisárová: <a href="https://lenkacisarova.com/">Lenka Cisárová</a></p>
+        <p>Marek Hlavatý: <a href="https://www.prasart.com/">prasart</a></p>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

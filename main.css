@@ -26,13 +26,7 @@
     font-style: normal;
 }
 
-html {
-    background: white;
-}
-
 body {
-    background: white;
-    color: black;
     font-family: "IBMPlexMono-Light", "Courier New", Arial;
     overflow-x: hidden;
     max-width: 1250px;
@@ -115,12 +109,30 @@ footer p {
     margin-top: 25px;
 }
 
+.mt200 {
+    margin-top: 200px;
+}
+
+.mb500 {
+    margin-bottom: 500px;
+}
+
 .filter-invert-100 {
     filter: invert(100%);
 }
 
 .filter-invert-75 {
     filter: invert(75%);
+}
+
+.light {
+    color: black;
+    background: white;
+}
+
+.dark {
+    color: #9392b8;
+    background: black;
 }
 
 /* -- breakpoints -- */
