@@ -52,7 +52,11 @@ main h1 {
     font-weight: bolder;
 }
 
-main a {
+main a:hover {
+    text-decoration: underline;
+}
+
+main p a {
     text-decoration: underline;
 }
 
@@ -75,6 +79,12 @@ main section p {
     margin-bottom: 25px;
 }
 
+main section li {
+    font-size: 18px;
+    margin-bottom: 25px;
+    list-style: outside;
+}
+
 main section picture > p {
     font-size: 14px;
     text-align: center;
@@ -91,6 +101,7 @@ main section h1 {
 main section h2 {
     font-size: 30px;
     font-style: italic;
+    margin-bottom: 10px;
 }
 
 /* -- footer -- */
@@ -104,6 +115,10 @@ footer p {
 }
 
 /* -- reusable things -- */
+
+.postlink {
+    font-size: 30px;
+}
 
 .mt25 {
     margin-top: 25px;

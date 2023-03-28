@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Interactive urban model of Bratislava">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- TODO(yan): Favicon -->
+
+  <title>Yan Tóth</title>
+  <link rel="stylesheet" type="text/css" href="../main.css">
+</head>
+<body class="light">
+  <main>
+    <a href="../index.html">Go back</a>
+    <section>
+      <div>
+        <h1>Bratislava 2022 Model</h1>
+        <h2>Interactive urban model of Bratislava, Slovakia</h2>
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <p class="mt25">
+          The <a href="https://sub.digital/project02">BA 2022 model</a> is a
+          commercial project I worked on
+          with <a href="https://sub.digital">Subdigital</a> and Abaffy Design
+          for <a href="https://hbreavis.com/">HB Reavis</a> in 2017. It fuses
+          design, engineering and software to explain the connection of large
+          real-estate development to its surroundings in the city of
+          Bratislava. The model's 3x4K screen shows a stylized animated map of
+          the city. The presenter interacts with the model via a connected
+          mobile tablet and controls what the map shows.
+        </p>
+
+        <p>
+          While not initially intended, the engine in the model ended up being
+          mostly a compositor of animated layers (each potentially running
+          internal simulations) that could be turned on and off
+          individually. Blending animated layers was a simple mental model for
+          representing features in the engine - every user-visible feature is a
+          either an data-controlled animated layer or a blend thereof.
+        </p>
+
+        <p>
+          Even in idling state with no active highlights set by the presenter,
+          the model still displays a lot of PRNG-guided moving elements like
+          transportation and pedestrians. While we knew we would have powerful
+          consumer hardware available, we still wanted to be conservative with
+          the CPU and GPU budget so we partially specialized and precomputed
+          simulation and animation data offline whenever possible.
+        </p>
+
+        <p>
+          Because of the requirement to render HTML and the fact that the team
+          was mostly familiar with web technologies at the time, the engine runs
+          on (carefully written) TypeScript and paints pixels via WebGL and a
+          small amount of Chromium-rendered SVG. While that wouldn't be my
+          choice for what is basically an embedded project today, I am still
+          grateful for the iteration speed it gave us.
+        </p>
+      </div>
+      <picture>
+        <img class="filter-invert-100"
+             src="./1-BA2022.png" sizes="100vw"
+             srcset="./1-BA2022.png 1000w" />
+        <p>BA 2022 Model; picture courtesy of Subdigital</p>
+      </picture>
+    </section>
+  </main>
+
+  <footer>
+    <p>Yan Tóth</p>
+    <p>yanchi.toth@gmail.com</p>
+    <p><a href="https://github.com/yanchith/">github.com/yanchith/</p>
+    <p><a href="https://twitter.com/yanchith">twitter.com/yanchith/</p>
+  </footer>
+</body>
+</html>

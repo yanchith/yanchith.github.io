@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Interactive installation">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- TODO(yan): Favicon -->
+
+  <title>Yan Tóth</title>
+  <link rel="stylesheet" type="text/css" href="../main.css">
+</head>
+<body class="light">
+  <main>
+    <a href="../index.html">Go back</a>
+    <section>
+      <div>
+        <h1>Walkers</h1>
+        <h2>Interactive installation</h2>
+      </div>
+      <div><!-- EMPTY --></div>
+      <div>
+        <p class="mt25">
+          <a href="https://issuu.com/subdigital/docs/subdigital_studio/80">Walkers</a>
+          is a single purpose interactive installation built by Ján Pernecký and
+          me to support
+          an <a href="https://www.archinfo.sk/kalendarium/julia-jurinova-denniky.html">exhibition
+          of Júlia Jurinová</a> in 2018. We scanned people walking around the
+          exhibition with Kinect and asynchronously processed their point cloud
+          data to be interpolable by matching vertices between scan
+          frames. Finally, we projected the frame interpolations of the
+          collected scans on a wall in slow motion, rendered as particles with
+          CRT persistence post-processing effect applied to make them look
+          ghostly, each visitor leaving an imprint of themselves behind.
+        </p>
+
+        <p>
+          Because this was a one-shot project with an extremely narrow scope,
+          the whole creation process took about a week and we threw many of the
+          coding "best practices" out of the window. There was no code review or
+          code sharing, we worked on separate parts (Ján on geometry processing
+          and me on rendering) with just a shared directory on the file system
+          as the interaction API between our programs. Expecting to find a
+          horrible mess, I was surprised when I looked at the source for the
+          renderer program today. It is surprisingly clean and simple, does
+          exactly one thing and does it in a very concrete way, using just
+          the <a href="https://github.com/yanchith/webglutenfree">Webglutenfree</a>
+          library (built in-house for previous projects). While not really proud
+          for using Electron as the platform layer (and would probably hand-roll
+          a native platform layer today), it once again worked well.
+        </p>
+      </div>
+
+      <picture>
+        <img class="filter-invert-75"
+             src="./2-Walkers.png" sizes="100vw"
+             srcset="./2-Walkers.png 1000w" />
+        <p>Screenshot from the Walkers installation</p>
+      </picture>
+    </section>
+  </main>
+
+  <footer>
+    <p>Yan Tóth</p>
+    <p>yanchi.toth@gmail.com</p>
+    <p><a href="https://github.com/yanchith/">github.com/yanchith/</p>
+    <p><a href="https://twitter.com/yanchith">twitter.com/yanchith/</p>
+  </footer>
+</body>
+</html>
