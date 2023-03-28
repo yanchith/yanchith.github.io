@@ -88,15 +88,16 @@
         </li>
 
         <li>
-          I wish #[repr(C)], initialized struct padding and safe transmuting to bytes were
-          the default, and that there was an explicit opt-out with #[repr(Optimized)], or
-          something. Of course, this is completely at odds with Rust's way of doing
-          things, like niche optimization, enum discriminant elision,
-          #[rustc_layout_scalar_valid_range_{start,end}], etc. However, the modern C
-          replacement languages (JAI, Zig, maybe Odin?) actually have this, and it is very
-          helpful for code terseness. Games like to a lot of bytecasting, and the amount
-          of code one needs to write for this to work is in Rust is daunting, although
-          proc macros help.
+          I wish #[repr(C)], initialized struct padding and safe transmuting to
+          bytes were the default, and that there was an explicit opt-out with
+          #[repr(Optimized)], or something. Of course, this is completely at
+          odds with Rust's way of doing things, like niche optimization, enum
+          discriminant elision, #[rustc_layout_scalar_valid_range_{start,end}],
+          etc. However, the modern C replacement languages (JAI, Zig, maybe
+          Odin?) actually have this, and it is very helpful for code
+          terseness. Games like to a lot of bytecasting, and the amount of code
+          one needs to write for this to work in Rust is daunting, although proc
+          macros help.
         </li>
 
         <li>
