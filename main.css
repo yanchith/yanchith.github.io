@@ -52,7 +52,7 @@ main h1 {
     font-weight: bolder;
 }
 
-main a {
+main a:hover {
     text-decoration: underline;
 }
 
@@ -104,6 +104,10 @@ footer p {
 }
 
 /* -- reusable things -- */
+
+.postlink {
+    font-size: 30px;
+}
 
 .mt25 {
     margin-top: 25px;

@@ -2,16 +2,10 @@
 <html class="light" lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="Yan is a programmer in love with virtual worlds">
+  <meta name="description" content="Yan's website">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:site" content="@yanchith">
-  <meta name="twitter:title" content="Yan Toth">
-  <meta name="twitter:description" content="Yan is a programmer in love with virtual worlds">
-  <meta name="twitter:creator" content="@yanchith">
-
-  <!-- TODO(yan): Twitter, Opengraph, Favicon -->
+  <!-- TODO(yan): Favicon -->
 
   <title>Yan Tóth</title>
   <link rel="stylesheet" type="text/css" href="./main.css">
@@ -39,9 +33,7 @@
       </div>
     </section>
 
-    <h1>Works</h1>
-
-    <!-- TODO(yan): List more projects: Webglutenfree? -->
+    <h1>Posts</h1>
 
     <section>
       <div>
@@ -167,212 +159,9 @@
 
     </section>
 
-    <section>
-      <div>
-        <h1>H.U.R.B.A.N. Selector</h1>
-        <h2>An experimental procedural geometry modeling and morphing tool</h2>
-      </div>
-
-      <div><!-- EMPTY --></div>
-
-      <div>
-        <p class="mt25">
-          <a href="https://github.com/subdgtl/HURBAN-Selector">H.U.R.B.A.N
-          Selector</a> is a software experiment initially funded by
-          the <a href="https://www.scd.sk/">Slovak Design Center</a> I work on
-          with Ján Pernecký (<a href="https://sub.digital">Subdigital</a>)
-          and <a href="https://www.linkedin.com/in/ondrowan/">Ondrej
-          Slinták</a>. It is meant to test the hypothesis that creating new
-          designs and shapes is subconsciously inspired by our previous
-          experience. There is a trial and error phase in the design process
-          where many variations on the same shape are prototyped and chosen
-          from.
-        </p>
-
-        <p>
-          The software currently has many rough edges (mostly on the usability
-          side), but it strives to be a tool for simple parametric modeling,
-          containing implementations of various morphing strategies for mesh
-          models, allowing designers to smoothly interpolate between multiple
-          mesh geometries and select the result with the most desired features.
-        </p>
-
-        <p>
-          Following the explicit history lineage
-          of <a href="https://www.grasshopper3d.com/">Grasshopper</a>, we
-          decided that every decision the user makes in the editor should not
-          only be undo-able, but also modifiable at any point. The geometry
-          displayed in the viewport is just the result of applying operations on
-          the initially empty world. These operations can create or import
-          geometry, or transform existing geometries in some way, e.g. perform
-          iterative Laplace Relaxation.
-        </p>
-      </div>
-
-      <picture>
-        <img src="./hurban_selector.png" sizes="100vw"
-             srcset="./hurban_selector.png 1000w" />
-        <p>Screenshot of a model morph in H.U.R.B.A.N. Selector</p>
-      </picture>
-
-      <div>
-        <p>
-          Exposing the declarative nature of editing to the user freed us to
-          utilize a well specified thought model of having an interpreter that
-          evaluates a directed acyclic graph of possibly interdependent
-          operations. Naturally, we didn't want to execute the whole graph of
-          possibly heavy operations on every change to its definition. Simple
-          tricks such as ID-ing the operations instances by their operation type
-          and parameter values allowed us to preserve sub-graphs of computation
-          from previous interactions and only recompute the minimal necessary
-          set of operations.
-        </p>
-
-        <p>
-          I was surprised to learn that the UI of some 3D modeling tools
-          (e.g. Rhino, Blender) can freeze up when performing computations on
-          heavy geometries. We knew from the start that some of the topology
-          traversal algorithms necessary to implement the strategy of morphing
-          we initially wanted to do won't have great time complexity, and
-          therefore opted to run the graph interpreter in its own thread and
-          design the UI around this asynchrony from the get-go. As these things
-          usually go, we did't implement the topology based approach to morphing
-          in the end, but at least as a positive side effect the editor doesn't
-          freeze up. Mostly.
-        </p>
-
-        <p>
-          The editor itself is written in the Rust programming language, with
-          the use of a few libraries
-          (<a href="https://github.com/subdgtl/HURBAN-Selector/blob/master/Cargo.toml">Cargo.toml</a>).
-          This certainly proved to be a lot of work, but has paid of in some
-          areas - for instance our implementation of some geometry algorithms
-          already outperforms Rhino. Overall the balance between using existing
-          solutions and making something from scratch is tough to strike.
-        </p>
-
-        <p>
-          H.U.R.B.A.N. Selector proved to be a lot of work and as our funding
-          was nearing end, we had to sacrifice some of the things we wanted to
-          do. Most notably, we are really unhappy with the current user
-          interface. One of the first things we would do when working on the
-          project again would be to openly admit to and promote the graph
-          structure of the geometry definition, and allow the user to model
-          geometry via a node-based programming environment similar to
-          Grasshopper or Unreal Blueprints.
-        </p>
-      </div>
-
-      <picture>
-        <img src="./hurban_selector-screenshot.png" sizes="100vw"
-             srcset="./hurban_selector-screenshot.png 1000w" />
-        <p>
-          Screenshot of Simplex Noise generated scalar field materialized via
-          Marching Cubes and smoothed by Loop Subdivision in
-          H.U.R.B.A.N. Selector
-        </p>
-      </picture>
-    </section>
-
-    <section>
-      <div>
-        <h1>Walkers</h1>
-        <h2>Interactive installation</h2>
-      </div>
-      <div><!-- EMPTY --></div>
-      <div>
-        <p class="mt25">
-          <a href="https://issuu.com/subdigital/docs/subdigital_studio/80">Walkers</a>
-          is a single purpose interactive installation built by Ján Pernecký and
-          me to support
-          an <a href="https://www.archinfo.sk/kalendarium/julia-jurinova-denniky.html">exhibition
-          of Júlia Jurinová</a> in 2018. We scanned people walking around the
-          exhibition with Kinect and asynchronously processed their point cloud
-          data to be interpolable by matching vertices between scan
-          frames. Finally, we projected the frame interpolations of the
-          collected scans on a wall in slow motion, rendered as particles with
-          CRT persistence post-processing effect applied to make them look
-          ghostly, each visitor leaving an imprint of themselves behind.
-        </p>
-
-        <p>
-          Because this was a one-shot project with an extremely narrow scope,
-          the whole creation process took about a week and we threw many of the
-          coding "best practices" out of the window. There was no code review or
-          code sharing, we worked on separate parts (Ján on geometry processing
-          and me on rendering) with just a shared directory on the file system
-          as the interaction API between our programs. Expecting to find a
-          horrible mess, I was surprised when I looked at the source for the
-          renderer program today. It is surprisingly clean and simple, does
-          exactly one thing and does it in a very concrete way, using just
-          the <a href="https://github.com/yanchith/webglutenfree">Webglutenfree</a>
-          library (built in-house for previous projects). While not really proud
-          for using Electron as the platform layer (and would probably hand-roll
-          a native platform layer today), it once again worked well.
-        </p>
-      </div>
-
-      <picture>
-        <img class="filter-invert-75"
-             src="./Walkers.png" sizes="100vw"
-             srcset="./Walkers.png 1000w" />
-        <p>Screenshot from the Walkers installation</p>
-      </picture>
-    </section>
-
-    <section>
-      <div>
-        <h1>Bratislava 2022 Model</h1>
-        <h2>Interactive urban model of Bratislava, Slovakia</h2>
-      </div>
-      <div><!-- EMPTY --></div>
-      <div>
-        <p class="mt25">
-          The <a href="https://sub.digital/project02">BA 2022 model</a> is a
-          commercial project I worked on
-          with <a href="https://sub.digital">Subdigital</a> and Abaffy Design
-          for <a href="https://hbreavis.com/">HB Reavis</a> in 2017. It fuses
-          design, engineering and software to explain the connection of large
-          real-estate development to its surroundings in the city of
-          Bratislava. The model's 3x4K screen shows a stylized animated map of
-          the city. The presenter interacts with the model via a connected
-          mobile tablet and controls what the map shows.
-        </p>
-
-        <p>
-          While not initially intended, the engine in the model ended up being
-          mostly a compositor of animated layers (each potentially running
-          internal simulations) that could be turned on and off
-          individually. Blending animated layers was a simple mental model for
-          representing features in the engine - every user-visible feature is a
-          either an data-controlled animated layer or a blend thereof.
-        </p>
-
-        <p>
-          Even in idling state with no active highlights set by the presenter,
-          the model still displays a lot of PRNG-guided moving elements like
-          transportation and pedestrians. While we knew we would have a powerful
-          desktop computer available, we still wanted to be conservative with
-          the CPU and GPU budget so we partially specialized and precomputed
-          simulation and animation data offline whenever possible.
-        </p>
-
-        <p>
-          Because of the requirement to render HTML and the fact that the team
-          was mostly familiar with web technologies at the time, the engine runs
-          on (carefully written) TypeScript and paints pixels via WebGL and a
-          small amount of Chromium-rendered SVG. While that wouldn't be my
-          choice for what is basically an embedded project today, I am still
-          grateful for the iteration speed it gave us.
-        </p>
-      </div>
-      <picture>
-        <img class="filter-invert-100"
-             src="./BA2022.png" sizes="100vw"
-             srcset="./BA2022.png 1000w" />
-        <p>BA 2022 Model; picture courtesy of Subdigital</p>
-      </picture>
-    </section>
+    <div class="mt25"><a class="postlink" href="./posts/3.html">Project: H.U.R.B.A.N. Selector</a></div>
+    <div class="mt25"><a class="postlink" href="./posts/2.html">Project: Walkers</a></div>
+    <div class="mt25"><a class="postlink" href="./posts/1.html">Project: Bratislava 2022 Model</a></div>
   </main>
 
   <footer>
