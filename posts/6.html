@@ -45,11 +45,11 @@
           become, the more it annoys me that it doesn't trust the programmer to do the
           correct thing in low-level code. Rust is great when I am in "scripting mode",
           doing features the first way that comes to mind, but hand-optimizing memory
-          layout in Rust is way harder than I'd like, especially if you do so after the
+          layout is way harder than I'd like, especially if you do so after the
           fact. Rust prefers being fast by virtue of a very smart compiler and very
           complicated standard library first, and only then by giving the programmer
           control over performance. While control is possible, this is not always the
-          default, and sometimes this requires #![no_std] and the nightly compiler.
+          default, and sometimes requires #![no_std] and the nightly compiler.
         </p>
 
         <h2>The List</h2>
@@ -62,13 +62,14 @@
         </p>
 
         <li>
-          #![no_std] is not a first-class citizen in the Rustverse. Libraries that could
-          have been no_std are not, and I had to reimplement a lot of functionality just
-          so it would work on no_std. At the moment, I have my own text serialization
-          library, my own immediate mode GUI library, and I expect to end up with my own
-          collections before I am done. On the other hand, having less external
-          dependencies is good, so maybe I'd have reimplemented subsets those crates
-          anyway.
+          #![no_std] is not a first-class citizen in the Rustverse. Libraries
+          that could have been no_std are not, and I had to reimplement a lot of
+          functionality just so it would work on no_std. At the moment, I have
+          my own serialization library instead of serde, my own immediate
+          mode GUI library instead of egui, and I expect to end up with my
+          own collections before I am done. On the other hand, having less
+          external dependencies is good, so maybe I'd have reimplemented subsets
+          those crates anyway.
         </li>
 
         <li>
@@ -155,10 +156,11 @@
           But since I am sticking with it, I might as well make my time more
           enjoyable. The more the engine matures, the less of Rust's Standard library (or
           any 3rd party library, really) I use, and the more the code I write looks like
-          C, with less traits, less virtual calls, less enums with a large number of
-          variants. And the more that happens, the more I enjoy programming the game!
+          C, with less traits, less virtual calls, and less enums with a large number of
+          variants. And the more that happens, the more I enjoy working on the game's code!
         </p>
 
+        <p>Happy coding!</p>
       </ul>
       </div>
       <picture>
