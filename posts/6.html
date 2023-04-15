@@ -1,186 +1,186 @@
 <!DOCTYPE html>
 <html class="light" lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="description" content="My unsorted and unsolicited thoughts on Rust for game development">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="My unsorted and unsolicited thoughts on Rust for game development">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- TODO(yan): Favicon -->
+    <!-- TODO(yan): Favicon -->
 
-  <title>Yan Tóth</title>
-  <link rel="stylesheet" type="text/css" href="../main.css">
-</head>
-<body class="light">
-  <main>
-    <a href="../index.html">Go back</a>
-    <section>
-      <div>
-        <h1>My unsorted and unsolicited thoughts on Rust for game development</h1>
-      </div>
-      <div><!-- EMPTY --></div>
-      <div>
-      <ul>
-        <p class="mt25">
-          So I am making a video game. With Rust. Unlike many folks, I am not using an
-          existing game engine. This is because I've seen game engines come and
-          go. Piston, ggez, Amethyst-chan, it's been so long, you should write sometime!
-          These days bevy is all the rage, but who knows what's going to happen tomorrow?
-          I also like to learn by building things, and to organize the codebase myself, so
-          this just wouldn't work. It's not the engines, it's me.
-        </p>
+    <title>Spare Thoughts</title>
+    <link rel="stylesheet" type="text/css" href="../main.css">
+  </head>
+  <body class="light">
+    <main>
+      <a href="../index.html">Go back</a>
+      <section>
+        <div>
+          <h1>My unsorted and unsolicited thoughts on Rust for game development</h1>
+        </div>
+        <div><!-- EMPTY --></div>
+        <div>
+          <p class="mt25">
+            So I am making a video game. With Rust. Unlike many folks, I am not using an
+            existing game engine. This is because I've seen game engines come and
+            go. Piston, ggez, Amethyst-chan, it's been so long, you should write sometime!
+            These days bevy is all the rage, but who knows what's going to happen tomorrow?
+            I also like to learn by building things, and to organize the codebase myself, so
+            this just wouldn't work. It's not the engines, it's me.
+          </p>
 
-        <p>
-          It will very soon be two years since I started. As time went on, I
-          wrote down little notes about what I liked and what I didn't' about
-          Rust for game (and game engine) development. I am going to talk about
-          some of those points here. While the rest of the post might seem
-          overly negative, it is actually written from a position of love and
-          intimate knowledge of a long-term partner. I have been programming
-          with Rust since pre-1.0. There's going to be things I don't like about
-          the language, but I know these imperfections precisely because we have
-          been together for so long!
-        </p>
+          <p>
+            It will very soon be two years since I started. As time went on, I
+            wrote down little notes about what I liked and what I didn't' about
+            Rust for game (and game engine) development. I am going to talk about
+            some of those points here. While the rest of the post might seem
+            overly negative, it is actually written from a position of love and
+            intimate knowledge of a long-term partner. I have been programming
+            with Rust since pre-1.0. There's going to be things I don't like about
+            the language, but I know these imperfections precisely because we have
+            been together for so long!
+          </p>
 
-        <p>
-          The overall theme is that me and Rust are not so madly in love
-          anymore, and that, day by day, we share less and less of our
-          values. In fact, we might be having a crisis. The more experienced in
-          writing programs I become, the more it annoys me that Rust doesn't
-          trust the programmer to do the correct thing in low-level code. It is
-          great when I am in "scripting mode", doing features the first way that
-          comes to mind, but hand-optimizing memory layout is way harder than
-          I'd like, especially if you do so after the fact. Rust prefers being
-          fast by virtue of a very smart compiler and very complicated standard
-          library first, and only then by giving the programmer control over
-          performance. While control is possible, this is not always the
-          default, and sometimes requires #![no_std] and the nightly compiler.
-        </p>
+          <p>
+            The overall theme is that me and Rust are not so madly in love
+            anymore, and that, day by day, we share less and less of our
+            values. In fact, we might be having a crisis. The more experienced in
+            writing programs I become, the more it annoys me that Rust doesn't
+            trust the programmer to do the correct thing in low-level code. It is
+            great when I am in "scripting mode", doing features the first way that
+            comes to mind, but hand-optimizing memory layout is way harder than
+            I'd like, especially if you do so after the fact. Rust prefers being
+            fast by virtue of a very smart compiler and very complicated standard
+            library first, and only then by giving the programmer control over
+            performance. While control is possible, this is not always the
+            default, and sometimes requires #![no_std] and the nightly compiler.
+          </p>
 
-        <h2>The List</h2>
+          <h2>The List</h2>
 
-        <p>
-          Here's my unpolished list of both the good and the bad. Note that
-          there are a ton of things other people have
-          written <a href="https://matklad.github.io/2023/03/26/zig-and-rust.html">about</a>,
-          so instead I'd like to focus on the stuff I encountered myself:
-        </p>
+          <p>
+            Here's my unpolished list of both the good and the bad. Note that
+            there are a ton of things other people have
+            written <a href="https://matklad.github.io/2023/03/26/zig-and-rust.html">about</a>,
+            so instead I'd like to focus on the stuff I encountered myself:
+          </p>
 
-        <li>
-          #![no_std] is not a first-class citizen in the Rustverse. Libraries
-          that could have been no_std are not, and I had to reimplement a lot of
-          functionality just so it would work on no_std. At the moment, I have
-          my own serialization library instead of serde, my own immediate
-          mode GUI library instead of egui, and I expect to end up with my
-          own collections before I am done. On the other hand, having less
-          external dependencies is good, so maybe I'd have reimplemented subsets
-          those crates anyway.
-        </li>
+          <ul>
+            <li>
+              #![no_std] is not a first-class citizen in the Rustverse. Libraries
+              that could have been no_std are not, and I had to reimplement a lot of
+              functionality just so it would work on no_std. At the moment, I have
+              my own serialization library instead of serde, my own immediate
+              mode GUI library instead of egui, and I expect to end up with my
+              own collections before I am done. On the other hand, having less
+              external dependencies is good, so maybe I'd have reimplemented subsets
+              those crates anyway.
+            </li>
 
-        <li>
-          Overreliance on alloc::alloc::Global, both in the standard library and in 3rd
-          party crates. This, of course, is both an historical artifact and Rust's
-          philosophy of being a better C++, instead of a better
-          C. #![feature(allocator_api)] let's you use existing collections you've learned
-          to love with bump allocators and arenas, but it is still nightly-only, and it
-          looks like it is going to be a very long time before it gets finished and
-          stabilized. Even when it stabilizes, it won't be the default for the majority of
-          people writing Rust.
-        </li>
+            <li>
+              Overreliance on alloc::alloc::Global, both in the standard library and in 3rd
+              party crates. This, of course, is both an historical artifact and Rust's
+              philosophy of being a better C++, instead of a better
+              C. #![feature(allocator_api)] let's you use existing collections you've learned
+              to love with bump allocators and arenas, but it is still nightly-only, and it
+              looks like it is going to be a very long time before it gets finished and
+              stabilized. Even when it stabilizes, it won't be the default for the majority of
+              people writing Rust.
+            </li>
 
-        <li>
-          I wish #[repr(C)], initialized struct padding and safe transmuting to
-          bytes were the default, and that there was an explicit opt-out with
-          #[repr(Optimized)], or something. Of course, this is completely at
-          odds with Rust's way of doing things, like niche optimization, enum
-          discriminant elision, #[rustc_layout_scalar_valid_range_{start,end}],
-          etc. However, the modern C replacement languages (JAI, Zig, maybe
-          Odin?) actually have this, and it is very helpful for code
-          terseness. Games like to a lot of bytecasting, and the amount of code
-          one needs to write for this to work in Rust is daunting, although proc
-          macros help.
-        </li>
+            <li>
+              I wish #[repr(C)], initialized struct padding and safe transmuting to
+              bytes were the default, and that there was an explicit opt-out with
+              #[repr(Optimized)], or something. Of course, this is completely at
+              odds with Rust's way of doing things, like niche optimization, enum
+              discriminant elision, #[rustc_layout_scalar_valid_range_{start,end}],
+              etc. However, the modern C replacement languages (JAI, Zig, maybe
+              Odin?) actually have this, and it is very helpful for code
+              terseness. Games like to a lot of bytecasting, and the amount of code
+              one needs to write for this to work in Rust is daunting, although proc
+              macros help.
+            </li>
 
-        <li>
-          On that note, proc macros are great! They are a pain to write, but enable
-          building a lot of the game engine support systems quickly. I really like JAI's
-          metaprogramming, and hear great things about Zig's comptime, but Rust's proc
-          macros do the job.
-        </li>
+            <li>
+              On that note, proc macros are great! They are a pain to write, but enable
+              building a lot of the game engine support systems quickly. I really like JAI's
+              metaprogramming, and hear great things about Zig's comptime, but Rust's proc
+              macros do the job.
+            </li>
 
-        <li>
-          Related, the bytemuck crate, and its derive proc macros is the greatest Rust
-          crate ever created! Full stop.
-        </li>
+            <li>
+              Related, the bytemuck crate, and its derive proc macros is the greatest Rust
+              crate ever created! Full stop.
+            </li>
 
-        <li>
-          Enums are very useful, but there is such a thing as being too typesafe. During
-          development I learned to use enums more sparingly. They are great for organizing
-          data, but piling everything into the same struct when building game logic ended
-          up being a breath of fresh air, as hundreds of lines of pattern-matching from
-          serialization, gameplay code, UI code, and other places disappeared. Also, enums
-          are very difficult to bytecast correctly (unused discriminant bytes are
-          uninitialized and therefore UB to read), which I learned only after they had
-          their tendrils spread throughout the codebase.
-        </li>
+            <li>
+              Enums are very useful, but there is such a thing as being too typesafe. During
+              development I learned to use enums more sparingly. They are great for organizing
+              data, but piling everything into the same struct when building game logic ended
+              up being a breath of fresh air, as hundreds of lines of pattern-matching from
+              serialization, gameplay code, UI code, and other places disappeared. Also, enums
+              are very difficult to bytecast correctly (unused discriminant bytes are
+              uninitialized and therefore UB to read), which I learned only after they had
+              their tendrils spread throughout the codebase.
+            </li>
 
-        <li>
-          More on the topic of transmutes, core::time::Duration can't be bytecast and has
-          4 bytes of padding?! Is the niche optimization really worth it?
-        </li>
+            <li>
+              More on the topic of transmutes, core::time::Duration can't be bytecast and has
+              4 bytes of padding?! Is the niche optimization really worth it?
+            </li>
 
-        <li>
-          The arrayvec crate is awesome! The tinyvec crate is also great, but the T:
-          Default bound is not so great. I am also missing a bytecastable arrayvec... is
-          this a theme?
-        </li>
+            <li>
+              The arrayvec crate is awesome! The tinyvec crate is also great, but the T:
+              Default bound is not so great. I am also missing a bytecastable arrayvec... is
+              this a theme?
+            </li>
 
-        <li>
-          The wgpu crate provides a super simple, high-level graphics API for
-          Rust since 2019 (or perhaps late 2018?). While the spec and API
-          changes frequently, and the library is quite wasteful both in terms of
-          runtime performance and compile time bloat, it gave me such a boost in
-          the early stages of development that I feel bad for even mentioning
-          the downsides.
-        </li>
+            <li>
+              The wgpu crate provides a super simple, high-level graphics API for
+              Rust since 2019 (or perhaps late 2018?). While the spec and API
+              changes frequently, and the library is quite wasteful both in terms of
+              runtime performance and compile time bloat, it gave me such a boost in
+              the early stages of development that I feel bad for even mentioning
+              the downsides.
+            </li>
 
-        <li>
-          The winit crate has a very similar value proposition to wgpu. Don't have too
-          specific requirements for your platform layer, and want to get started quickly?
-          Winit's your crate!
-        </li>
+            <li>
+              The winit crate has a very similar value proposition to wgpu. Don't have too
+              specific requirements for your platform layer, and want to get started quickly?
+              Winit's your crate!
+            </li>
+          </ul>
 
-        <h2>Conclusion?</h2>
+          <h2>Conclusion?</h2>
 
-        <p>
-          I am not going to rewrite the game in another language, because I'd like to ship
-          it this century, but I do feel the temptation. If I were starting today, I am
-          not so sure I'd have picked Rust.
-        </p>
+          <p>
+            I am not going to rewrite the game in another language, because I'd like to ship
+            it this century, but I do feel the temptation. If I were starting today, I am
+            not so sure I'd have picked Rust.
+          </p>
 
-        <p>
-          But since I am sticking with it, I might as well make my time more
-          enjoyable. The more the engine matures, the less of Rust's Standard library (or
-          any 3rd party library, really) I use, and the more the code I write looks like
-          C, with less traits, less virtual calls, and less enums with a large number of
-          variants. And the more that happens, the more I enjoy working on the game's code!
-        </p>
+          <p>
+            But since I am sticking with it, I might as well make my time more
+            enjoyable. The more the engine matures, the less of Rust's Standard library (or
+            any 3rd party library, really) I use, and the more the code I write looks like
+            C, with less traits, less virtual calls, and less enums with a large number of
+            variants. And the more that happens, the more I enjoy working on the game's code!
+          </p>
 
-        <p>Happy coding!</p>
-      </ul>
-      </div>
-      <picture>
-        <img src="./6-game.png" sizes="100vw"
-             srcset="./6-game.png 1000w" />
-        <p>A game?</p>
-      </picture>
-    </section>
-  </main>
+          <p>Happy coding!</p>
+        </div>
+        <picture>
+          <img src="./6-game.png" sizes="100vw"
+               srcset="./6-game.png 1000w" />
+          <p>A game?</p>
+        </picture>
+      </section>
+    </main>
 
-  <footer>
-    <p>Yan Tóth</p>
-    <p>yanchi.toth@gmail.com</p>
-    <p><a href="https://github.com/yanchith/">github.com/yanchith/</p>
-    <p><a href="https://twitter.com/yanchith">twitter.com/yanchith/</p>
-  </footer>
-</body>
+    <footer>
+      <p>Yan Tóth</p>
+      <p>yanchi.toth@gmail.com</p>
+      <p><a href="https://github.com/yanchith/">github.com/yanchith/</p>
+      <p><a href="https://twitter.com/yanchith">twitter.com/yanchith/</p>
+    </footer>
+  </body>
 </html>
