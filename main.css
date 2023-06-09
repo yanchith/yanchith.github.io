@@ -17,6 +17,7 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* TODO(yan): Try out the 'Cardo' font. https://fonts.google.com/specimen/Cardo */
 /* TODO(yan): woff2 fonts with fallback */
 
 @font-face {
