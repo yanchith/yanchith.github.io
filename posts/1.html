@@ -43,7 +43,7 @@
 
         <p>
           Even in idling state with no active highlights set by the presenter,
-          the model still displays a lot of PRNG-guided moving elements like
+          the model still displays a lot of RNG-guided moving elements like
           transportation and pedestrians. While we knew we would have powerful
           consumer hardware available, we still wanted to be conservative with
           the CPU and GPU budget so we partially specialized and precomputed
@@ -53,11 +53,13 @@
         <p>
           Because of the requirement to render HTML and the fact that the team
           was mostly familiar with web technologies at the time, the engine runs
-          on (carefully written) TypeScript and paints pixels via WebGL and a
+          on (carefully written subset of) TypeScript and paints pixels via WebGL and a
           small amount of Chromium-rendered SVG. While that wouldn't be my
           choice for what is basically an embedded project today, I am still
           grateful for the iteration speed it gave us.
         </p>
+
+        <p>Final result here <a href="https://www.youtube.com/watch?v=yGYEIrzWOgM">https://www.youtube.com/watch?v=yGYEIrzWOgM</a></p>
       </div>
       <picture>
         <img class="filter-invert-100"
