@@ -166,6 +166,7 @@ footer p {
 }
 
 /* -- breakpoints -- */
+/* TODO(jt): Enable if I find a way to make this look good?
 
 @media (max-width: 1200px) {
     body {
@@ -197,3 +198,5 @@ footer p {
         margin-top: 50px;
     }
 }
+
+*/
