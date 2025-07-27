@@ -166,6 +166,10 @@ footer p {
 }
 
 /* -- breakpoints -- */
+@media print {
+    .pagebreak { break-before: page }
+}
+
 /* TODO(jt): Enable if I find a way to make this look good?
 
 @media (max-width: 1200px) {
