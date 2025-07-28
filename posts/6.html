@@ -7,7 +7,7 @@
 
     <!-- TODO(yan): Favicon -->
 
-    <title>Without Fear</title>
+    <title>Without Fear of Wind or Vertigo</title>
     <link rel="stylesheet" type="text/css" href="../main.css">
   </head>
   <body class="light">
@@ -29,30 +29,25 @@
           </p>
 
           <p>
-            It will very soon be two years since I started. As time went on, I
-            wrote down little notes about what I liked and what I didn't' about
-            Rust for game (and game engine) development. I am going to talk about
-            some of those points here. While the rest of the post might seem
-            overly negative, it is actually written from a position of love and
-            intimate knowledge of a long-term partner. I have been programming
-            with Rust since pre-1.0. There's going to be things I don't like about
-            the language, but I know these imperfections precisely because we have
-            been together for so long!
+            It will very soon be two years since I started. As time went on, I wrote down little
+            notes about what I liked and what I didn't' about Rust for game (and game engine)
+            development. I am going to talk about some of those points here. While the rest of the
+            post might seem overly negative, it is actually written from a position of love and
+            intimate knowledge. I have been programming with Rust since pre-1.0. There's going to be
+            things I don't like about the language, but I know these imperfections precisely because
+            of the time I spent with it!
           </p>
 
           <p>
-            The overall theme is that me and Rust are not so madly in love
-            anymore, and that, day by day, we share less and less of our
-            values. In fact, we might be having a crisis. The more experienced in
-            writing programs I become, the more it annoys me that Rust doesn't
-            trust the programmer to do the correct thing in low-level code. It is
-            great when I am in "scripting mode", doing features the first way that
-            comes to mind, but hand-optimizing memory layout is way harder than
-            I'd like, especially if you do so after the fact. Rust prefers being
-            fast by virtue of a very smart compiler and very complicated standard
-            library first, and only then by giving the programmer control over
-            performance. While control is possible, this is not always the
-            default, and sometimes requires #![no_std] and the nightly compiler.
+            The overall theme is that I don't share so many values with Rust anymore. The more
+            experienced in writing programs I become, the more it annoys me that Rust doesn't trust
+            the programmer to do the correct thing in low-level code. It is great when I am in
+            "scripting mode", doing features the first way that comes to mind, but hand-modifying
+            memory layout is way harder than I'd like, especially if you do so after the fact. Rust
+            prefers being fast by virtue of a very smart compiler and very complicated standard
+            library first, and only then by giving the programmer control over performance. While
+            control is possible, this is not always the default, and sometimes requires #![no_std]
+            and the nightly compiler.
           </p>
 
           <h2>The List</h2>
@@ -66,14 +61,13 @@
 
           <ul>
             <li>
-              #![no_std] is not a first-class citizen in the Rustverse. Libraries
-              that could have been no_std are not, and I had to reimplement a lot of
-              functionality just so it would work on no_std. At the moment, I have
-              my own serialization library instead of serde, my own immediate
-              mode GUI library instead of egui, and I expect to end up with my
-              own collections before I am done. On the other hand, having less
-              external dependencies is good, so maybe I'd have reimplemented subsets
-              those crates anyway.
+              #![no_std] is not a first-class citizen in the Rust. Libraries that could have been
+              no_std are not, and I had to reimplement a lot of functionality just so it would work
+              on no_std. At the moment, I have my own serialization library instead of serde, my own
+              immediate mode GUI library instead of egui, and I expect to end up with my own
+              collections before I am done (<b>2025 Update:</b> Indeed, it happened!). On the other
+              hand, having less external dependencies is good, so maybe I'd have reimplemented
+              subsets those crates anyway.
             </li>
 
             <li>
@@ -88,16 +82,14 @@
             </li>
 
             <li>
-              I wish #[repr(C)], initialized struct padding and safe transmuting to
-              bytes were the default, and that there was an explicit opt-out with
-              #[repr(Optimized)], or something. Of course, this is completely at
-              odds with Rust's way of doing things, like niche optimization, enum
-              discriminant elision, #[rustc_layout_scalar_valid_range_{start,end}],
-              etc. However, the modern C replacement languages (JAI, Zig, maybe
-              Odin?) actually have this, and it is very helpful for code
-              terseness. Games like to a lot of bytecasting, and the amount of code
-              one needs to write for this to work in Rust is daunting, although proc
-              macros help.
+              I wish #[repr(C)] also forced the compiler to initialize struct padding, so that safe
+              transmuting to bytes were the default, and that there was an explicit opt-out with
+              #[repr(C, Optimized)], or something. Of course, this is completely at odds with Rust's
+              way of doing things, like niche optimization, enum discriminant elision,
+              #[rustc_layout_scalar_valid_range_{start,end}], etc. However, the modern C replacement
+              languages (JAI, Zig, Odin) actually have this, and it is very helpful for code
+              terseness. Games like to a lot of bytecasting, and the amount of code one needs to
+              write for this to work in Rust is daunting, although proc macros help.
             </li>
 
             <li>
