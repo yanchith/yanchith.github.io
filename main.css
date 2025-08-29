@@ -132,6 +132,10 @@ footer p {
 
 /* -- reusable things -- */
 
+.nonbreaking {
+  white-space: nowrap;
+}
+
 .maxwidth300 {
     max-width: 300px;
 }

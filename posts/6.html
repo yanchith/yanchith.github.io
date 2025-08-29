@@ -46,8 +46,8 @@
             memory layout is way harder than I'd like, especially if you do so after the fact. Rust
             prefers being fast by virtue of a very smart compiler and very complicated standard
             library first, and only then by giving the programmer control over performance. While
-            control is possible, this is not always the default, and sometimes requires #![no_std]
-            and the nightly compiler.
+            control is possible, this is not always the default, and sometimes
+            requires <span class="nonbreaking">#![no_std]</span> and the nightly compiler.
           </p>
 
           <h2>The List</h2>
@@ -71,25 +71,27 @@
             </li>
 
             <li>
-              Overreliance on alloc::alloc::Global, both in the standard library and in 3rd
-              party crates. This, of course, is both an historical artifact and Rust's
-              philosophy of being a better C++, instead of a better
-              C. #![feature(allocator_api)] let's you use existing collections you've learned
-              to love with bump allocators and arenas, but it is still nightly-only, and it
-              looks like it is going to be a very long time before it gets finished and
-              stabilized. Even when it stabilizes, it won't be the default for the majority of
-              people writing Rust.
+              Overreliance on alloc::alloc::Global, both in the standard library and in 3rd party
+              crates. This, of course, is both an historical artifact and Rust's philosophy of being
+              a better C++, instead of a better
+              C. <span class="nonbreaking">#![feature(allocator_api)]</span> let's you use existing
+              collections you've learned to love with bump allocators and arenas, but it is still
+              nightly-only, and it looks like it is going to be a very long time before it gets
+              finished and stabilized. Even when it stabilizes, it won't be the default for the
+              majority of people writing Rust.
             </li>
 
             <li>
-              I wish #[repr(C)] also forced the compiler to initialize struct padding, so that safe
-              transmuting to bytes were the default, and that there was an explicit opt-out with
-              #[repr(C, Optimized)], or something. Of course, this is completely at odds with Rust's
+              I wish <span class="nonbreaking">#[repr(C)]</span> also forced the compiler to
+              initialize struct padding, so that safe transmuting to bytes were the default, and
+              that there was an explicit opt-out with <span class="nonbreaking">#[repr(C,
+              Optimized)],</span> or something. Of course, this is completely at odds with Rust's
               way of doing things, like niche optimization, enum discriminant elision,
-              #[rustc_layout_scalar_valid_range_{start,end}], etc. However, the modern C replacement
-              languages (JAI, Zig, Odin) actually have this, and it is very helpful for code
-              terseness. Games like to a lot of bytecasting, and the amount of code one needs to
-              write for this to work in Rust is daunting, although proc macros help.
+              <span class="nonbreaking">#[rustc_layout_scalar_valid_range_{start,end}],</span>
+              etc. However, the modern C replacement languages (JAI, Zig, Odin) actually have this,
+              and it is very helpful for code terseness. Games like to a lot of bytecasting, and the
+              amount of code one needs to write for this to work in Rust is daunting, although proc
+              macros help.
             </li>
 
             <li>
