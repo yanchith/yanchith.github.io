@@ -39,6 +39,7 @@ also felt joy and pride about how much stuff I've built.
 - overworld and levels
 
 - designing mechanics and levels
+- which characters are on the overworld? party character vs individual
 
 # pain points
 
