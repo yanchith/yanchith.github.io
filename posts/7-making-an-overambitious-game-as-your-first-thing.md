@@ -1,3 +1,7 @@
+TODO(jt): This is a work in progress blog post I'd like to do eventually. The main point is to
+document my subjective experience of making a medium-sized game with complicated game design without
+using an engine.
+
 In between 2021 and 2024, I was working on a game. The game's core idea as it ended up (it evolved
 during development) is something that inspires me even today, and I would still like to make a
 similar game at some point, but at the time I was working on it, it was way too ambitious of a
