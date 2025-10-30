@@ -1,7 +1,9 @@
 const SIZE_OF_RECT_INSTANCE = 48;
 const SIZE_OF_RECT_INSTANCE_IN_FIELDS = 12;
 
-const MAX_RECT_INSTANCES = 9000;
+// TODO(jt): @Memory This creates a pessimistically large buffer for instances both on the
+// CPU side and the GPU side. We could make it smaller and flush and draw each time it fills up.
+const MAX_RECT_INSTANCES = 1024;
 
 async function rendererInitialize(canvas) {
     if (!navigator.gpu) {
@@ -218,10 +220,26 @@ function rendererDraw(renderer, rectInstanceArrayBuffer, rectTextureNames) {
 
     assert(rectInstanceArrayBuffer instanceof Float32Array, "Rect instance buffer must be a Float32Array");
     assert(typeof rectInstanceArrayBuffer.__length != "undefined", "Use rendererFloat32ArrayCreate to make the rect instance buffer");
-    assert(
-        rectInstanceArrayBuffer.__length == rectTextureNames.length * SIZE_OF_RECT_INSTANCE_IN_FIELDS,
-        `${rectInstanceArrayBuffer.__length} == ${rectTextureNames.length * SIZE_OF_RECT_INSTANCE_IN_FIELDS}`,
-    );
+
+    {
+        const instanceCount = rectInstanceArrayBuffer.__length / SIZE_OF_RECT_INSTANCE_IN_FIELDS;
+        const textureCount  = rectTextureNames.length;
+
+        if (instanceCount > textureCount) {
+            rectInstanceArrayBuffer.__length = textureCount * SIZE_OF_RECT_INSTANCE_IN_FIELDS;
+            logError(`Had more instances than textures (${instanceCount} > ${textureCount}). Clamping`);
+        }
+
+        if (textureCount > instanceCount) {
+            rectTextureNames.length = instanceCount;
+            logError(`Had more textures than instances (${textureCount} > ${instanceCount}). Clamping`);
+        }
+
+        assert(
+            rectInstanceArrayBuffer.__length == rectTextureNames.length * SIZE_OF_RECT_INSTANCE_IN_FIELDS,
+            `${rectInstanceArrayBuffer.__length} == ${rectTextureNames.length * SIZE_OF_RECT_INSTANCE_IN_FIELDS}`,
+        );
+    }
 
     const device  = renderer.device;
     const queue   = renderer.device.queue;
@@ -250,7 +268,7 @@ function rendererDraw(renderer, rectInstanceArrayBuffer, rectTextureNames) {
     renderPass.setBindGroup(0, renderer.screenUniformBindGroup);
 
     // TODO(jt): @Speed Currently, we have to encode many drawcalls into the render pass, because we
-    // switch the texture. However, we can atlas everething into a single texture. Once we do, this
+    // switch the texture. However, we can atlas everything into a single texture. Once we do, this
     // code should detect the longest possible run with the same texture to batch with instancing.
 
     let offset = 0;
@@ -291,11 +309,13 @@ function rendererFloat32ArrayPushRect(f32, p0x, p0y, p1x, p1y, texP0x, texP0y, t
     const oldSize = f32.__length;
     const newSize = oldSize + SIZE_OF_RECT_INSTANCE_IN_FIELDS;
 
-    assert(newSize < f32.length); // Let's not overflow the array.
+    // Let's not overflow the array.
+    if (newSize > f32.length) {
+        return;
+    }
 
     f32.__length = newSize;
 
-    // TODO(jt): @Speed Can we keep this view around?
     f32[oldSize + 0] = p0x;
     f32[oldSize + 1] = p0y;
     f32[oldSize + 2] = p1x;

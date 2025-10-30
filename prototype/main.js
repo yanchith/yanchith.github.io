@@ -148,62 +148,62 @@ async function main() {
 
     updateProgress(overlayButton, progress);
 
-    const result = await WebAssembly.instantiateStreaming(window.fetch("diagrams.wasm"), imports);
+    let wasm = await WebAssembly.instantiateStreaming(window.fetch("diagrams.wasm"), imports);
     progress.majorDone += 1;
     updateProgress(overlayButton, progress);
 
     // TODO(jt): Grow memory here to a reasonable size right here.
-    memory = result.instance.exports.memory;
+    memory = wasm.instance.exports.memory;
 
     // Yes, there is a lot of fuctions. Essentially, there are just 2 (4, if you count the
     // allocator), and the rest is there just to poke/peek at datastructures, which is trivial to do
     // in C, but gross in javascript.
 
-    const diagramsGetTextureFilenameData  = result.instance.exports.diagrams_get_texture_filename_data;
-    const diagramsGetTextureFilenameCount = result.instance.exports.diagrams_get_texture_filename_count;
-    const diagramsGetTextureCount         = result.instance.exports.diagrams_get_texture_count;
-    const diagramsGetSfxFilenameData      = result.instance.exports.diagrams_get_sfx_filename_data;
-    const diagramsGetSfxFilenameCount     = result.instance.exports.diagrams_get_sfx_filename_count;
-    const diagramsGetSfxCount             = result.instance.exports.diagrams_get_sfx_count;
-    const diagramsGetMusicFilenameData    = result.instance.exports.diagrams_get_music_filename_data;
-    const diagramsGetMusicFilenameCount   = result.instance.exports.diagrams_get_music_filename_count;
-    const diagramsGetMusicCount           = result.instance.exports.diagrams_get_music_count;
+    const diagramsGetTextureFilenameData  = wasm.instance.exports.diagrams_get_texture_filename_data;
+    const diagramsGetTextureFilenameCount = wasm.instance.exports.diagrams_get_texture_filename_count;
+    const diagramsGetTextureCount         = wasm.instance.exports.diagrams_get_texture_count;
+    const diagramsGetSfxFilenameData      = wasm.instance.exports.diagrams_get_sfx_filename_data;
+    const diagramsGetSfxFilenameCount     = wasm.instance.exports.diagrams_get_sfx_filename_count;
+    const diagramsGetSfxCount             = wasm.instance.exports.diagrams_get_sfx_count;
+    const diagramsGetMusicFilenameData    = wasm.instance.exports.diagrams_get_music_filename_data;
+    const diagramsGetMusicFilenameCount   = wasm.instance.exports.diagrams_get_music_filename_count;
+    const diagramsGetMusicCount           = wasm.instance.exports.diagrams_get_music_count;
 
-    const diagramsGameAlloc                  = result.instance.exports.diagrams_game_alloc;
-    const diagramsGameGetPuzzleCount         = result.instance.exports.diagrams_game_get_puzzle_count;
-    const diagramsGameGetPuzzleFilenameData  = result.instance.exports.diagrams_game_get_puzzle_filename_data;
-    const diagramsGameGetPuzzleFilenameCount = result.instance.exports.diagrams_game_get_puzzle_filename_count;
-    const diagramsGameInit                   = result.instance.exports.diagrams_game_init;
-    const diagramsGameUpdateAndRender        = result.instance.exports.diagrams_game_update_and_render;
+    const diagramsGameAlloc                  = wasm.instance.exports.diagrams_game_alloc;
+    const diagramsGameGetPuzzleCount         = wasm.instance.exports.diagrams_game_get_puzzle_count;
+    const diagramsGameGetPuzzleFilenameData  = wasm.instance.exports.diagrams_game_get_puzzle_filename_data;
+    const diagramsGameGetPuzzleFilenameCount = wasm.instance.exports.diagrams_game_get_puzzle_filename_count;
+    const diagramsGameInit                   = wasm.instance.exports.diagrams_game_init;
+    const diagramsGameUpdateAndRender        = wasm.instance.exports.diagrams_game_update_and_render;
 
-    const diagramsPlatformAlloc = result.instance.exports.diagrams_platform_alloc;
+    const diagramsPlatformAlloc = wasm.instance.exports.diagrams_platform_alloc;
 
-    const diagramsInputAlloc            = result.instance.exports.diagrams_input_alloc;
-    const diagramsInputSetTime          = result.instance.exports.diagrams_input_set_time;
-    const diagramsInputSetWindowSize    = result.instance.exports.diagrams_input_set_window_size;
-    const diagramsInputSetMousePosition = result.instance.exports.diagrams_input_set_mouse_position;
-    const diagramsInputClearKeyEvents   = result.instance.exports.diagrams_input_clear_key_events;
-    const diagramsInputPushKeyEvent     = result.instance.exports.diagrams_input_push_key_event;
+    const diagramsInputAlloc            = wasm.instance.exports.diagrams_input_alloc;
+    const diagramsInputSetTime          = wasm.instance.exports.diagrams_input_set_time;
+    const diagramsInputSetWindowSize    = wasm.instance.exports.diagrams_input_set_window_size;
+    const diagramsInputSetMousePosition = wasm.instance.exports.diagrams_input_set_mouse_position;
+    const diagramsInputClearKeyEvents   = wasm.instance.exports.diagrams_input_clear_key_events;
+    const diagramsInputPushKeyEvent     = wasm.instance.exports.diagrams_input_push_key_event;
 
-    const diagramsRenderListsAlloc                    = result.instance.exports.diagrams_render_lists_alloc;
-    const diagramsRenderListsGetRectCount             = result.instance.exports.diagrams_render_lists_get_rect_count;
-    const diagramsRenderListsRectsGetRectP0x          = result.instance.exports.diagrams_render_lists_rects_get_rect_p0x;
-    const diagramsRenderListsRectsGetRectP0y          = result.instance.exports.diagrams_render_lists_rects_get_rect_p0y;
-    const diagramsRenderListsRectsGetRectP1x          = result.instance.exports.diagrams_render_lists_rects_get_rect_p1x;
-    const diagramsRenderListsRectsGetRectP1y          = result.instance.exports.diagrams_render_lists_rects_get_rect_p1y;
-    const diagramsRenderListsRectsGetTextureRectP0x   = result.instance.exports.diagrams_render_lists_rects_get_texture_rect_p0x;
-    const diagramsRenderListsRectsGetTextureRectP0y   = result.instance.exports.diagrams_render_lists_rects_get_texture_rect_p0y;
-    const diagramsRenderListsRectsGetTextureRectP1x   = result.instance.exports.diagrams_render_lists_rects_get_texture_rect_p1x;
-    const diagramsRenderListsRectsGetTextureRectP1y   = result.instance.exports.diagrams_render_lists_rects_get_texture_rect_p1y;
-    const diagramsRenderListsRectsGetTextureNameCount = result.instance.exports.diagrams_render_lists_rects_get_texture_name_count;
-    const diagramsRenderListsRectsGetTextureNameData  = result.instance.exports.diagrams_render_lists_rects_get_texture_name_data;
-    const diagramsRenderListsRectsGetColorR           = result.instance.exports.diagrams_render_lists_rects_get_color_r;
-    const diagramsRenderListsRectsGetColorG           = result.instance.exports.diagrams_render_lists_rects_get_color_g;
-    const diagramsRenderListsRectsGetColorB           = result.instance.exports.diagrams_render_lists_rects_get_color_b;
-    const diagramsRenderListsRectsGetColorA           = result.instance.exports.diagrams_render_lists_rects_get_color_a;
+    const diagramsRenderListsAlloc                    = wasm.instance.exports.diagrams_render_lists_alloc;
+    const diagramsRenderListsGetRectCount             = wasm.instance.exports.diagrams_render_lists_get_rect_count;
+    const diagramsRenderListsRectsGetRectP0x          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p0x;
+    const diagramsRenderListsRectsGetRectP0y          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p0y;
+    const diagramsRenderListsRectsGetRectP1x          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p1x;
+    const diagramsRenderListsRectsGetRectP1y          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p1y;
+    const diagramsRenderListsRectsGetTextureRectP0x   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p0x;
+    const diagramsRenderListsRectsGetTextureRectP0y   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p0y;
+    const diagramsRenderListsRectsGetTextureRectP1x   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p1x;
+    const diagramsRenderListsRectsGetTextureRectP1y   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p1y;
+    const diagramsRenderListsRectsGetTextureNameCount = wasm.instance.exports.diagrams_render_lists_rects_get_texture_name_count;
+    const diagramsRenderListsRectsGetTextureNameData  = wasm.instance.exports.diagrams_render_lists_rects_get_texture_name_data;
+    const diagramsRenderListsRectsGetColorR           = wasm.instance.exports.diagrams_render_lists_rects_get_color_r;
+    const diagramsRenderListsRectsGetColorG           = wasm.instance.exports.diagrams_render_lists_rects_get_color_g;
+    const diagramsRenderListsRectsGetColorB           = wasm.instance.exports.diagrams_render_lists_rects_get_color_b;
+    const diagramsRenderListsRectsGetColorA           = wasm.instance.exports.diagrams_render_lists_rects_get_color_a;
 
-    const diagramsAlloc = result.instance.exports.diagrams_alloc;
-    const diagramsFree  = result.instance.exports.diagrams_free;
+    const diagramsAlloc = wasm.instance.exports.diagrams_alloc;
+    const diagramsFree  = wasm.instance.exports.diagrams_free;
 
     const renderer = await rendererInitialize(canvas);
 
@@ -371,10 +371,10 @@ async function main() {
     progress.majorDone += 1;
     updateProgress(overlayButton, progress);
 
-    const rectInstanceArray = rendererFloat32ArrayCreate(MAX_RECT_INSTANCES);
+    const rectInstanceArray = rendererFloat32ArrayCreate(MAX_RECT_INSTANCES * SIZE_OF_RECT_INSTANCE_IN_FIELDS);
     const rectTextureNames  = [];
 
-    overlayButton.addEventListener("click", () => {
+    function handleOverlayButtonClick() {
         function loop(timeMillis) {
             const timeSeconds = timeMillis * 0.001;
 
@@ -394,7 +394,7 @@ async function main() {
             }
             windowKeyEvents.length = 0;
 
-            diagramsGameUpdateAndRender(game, platform, input, renderLists);
+            const quit = diagramsGameUpdateAndRender(game, platform, input, renderLists);
 
             rendererFloat32ArrayClear(rectInstanceArray);
             rectTextureNames.length = 0;
@@ -444,14 +444,39 @@ async function main() {
 
             rendererDraw(renderer, rectInstanceArray, rectTextureNames);
 
-            window.requestAnimationFrame(loop);
+            if (quit) {
+                // Try cleaning up stuff, so that GC can page it out eventually.
+
+                audioStreams.clear();
+                audioBuffers.clear();
+                audioContext.close();
+                audioContext = null;
+
+                memoryAssetLocations.clear();
+                memory = null;
+
+                overlay.removeChild(overlayButton);
+                overlay.style.display = "flex";
+
+                window.removeEventListener("keydown",   handleWindowKeyDown);
+                window.removeEventListener("keyup",     handleWindowKeyUp);
+                window.removeEventListener("mousedown", handleWindowMouseDown);
+                window.removeEventListener("mouseup",   handleWindowMouseUp);
+                window.removeEventListener("mousemove", handleWindowMouseMove);
+
+                overlayHtml.innerHTML = `<p style="text-align: center;">Thank you for playing</p>`;
+            } else {
+                window.requestAnimationFrame(loop);
+            }
         }
 
+        overlayButton.removeEventListener("click", handleOverlayButtonClick);
         overlay.style.display = "none";
 
         window.requestAnimationFrame(loop);
+    }
 
-    });
+    overlayButton.addEventListener("click", handleOverlayButtonClick);
     overlayButton.disabled  = false;
     overlayButton.innerText = "Start";
     overlayButton.style.cursor = "pointer";
@@ -642,7 +667,14 @@ const imports = {
             sourceNode.connect(gainNode).connect(audioContext.destination);
             sourceNode.start();
 
-            const stream = { sourceNode, gainNode, timeStartSeconds: audioContext.currentTime };
+            const currentTimeSeconds = audioContext.currentTime;
+
+            const stream = {
+                sourceNode,
+                gainNode,
+                timeStartSeconds: currentTimeSeconds,
+                timeEndSeconds: currentTimeSeconds + audioBuffer.duration,
+            };
 
             audioStreams.set(stream_id, stream);
         },
@@ -671,14 +703,15 @@ const imports = {
                 return false;
             }
 
-            const timeMillis = window.performance.now();
-            const timeSeconds = timeMillis * 0.001;
+            if (stream.sourceNode.loop) {
+                return true;
+            }
 
-            // TODO(jt): @Correctness This is actually incorrect if the stream is repeating, but
-            // fortunately the game does not call this for repeating streams at all.
-            const playing = timeSeconds < (stream.timeStartSeconds + stream.sourceNode.buffer.duration);
+            if (audioContext.currentTime >= stream.timeEndSeconds) {
+                return false;
+            }
 
-            return playing;
+            return true;
         },
     },
 };
@@ -689,7 +722,7 @@ const memoryAssetLocations = new Map();  // Maps from asset path string into poi
 const textDecoder = new TextDecoder();
 
 // TODO(jt): @Correctness Suspend audio context on defocus.
-const audioContext = new AudioContext(); // Firefox issues a warning that we create the AudioContext eagerly, but we don't play anything yet, so it is fine?
+let   audioContext = new AudioContext(); // Firefox issues a warning that we create the AudioContext eagerly, but we don't play anything yet, so it is fine?
 const audioBuffers = new Map();
 const audioStreams = new Map();
 
@@ -753,30 +786,36 @@ const windowKeyEvents = [];
 let   windowMouseX;
 let   windowMouseY;
 
-window.addEventListener("keydown", (event) => {
+window.addEventListener("keydown",   handleWindowKeyDown);
+window.addEventListener("keyup",     handleWindowKeyUp);
+window.addEventListener("mousedown", handleWindowMouseDown);
+window.addEventListener("mouseup",   handleWindowMouseUp);
+window.addEventListener("mousemove", handleWindowMouseMove);
+
+function handleWindowKeyDown(event) {
     const key = event.key;
     windowKeyEvents.push({ key, pressed: 1 });
-});
+}
 
-window.addEventListener("keyup", (event) => {
+function handleWindowKeyUp(event) {
     const key = event.key;
     windowKeyEvents.push({ key, pressed: 0 });
-});
+}
 
-window.addEventListener("mousedown", (event) => {
+function handleWindowMouseDown(event) {
     const button = event.button;
     windowKeyEvents.push({ key: button, pressed: 1 });
-});
+}
 
-window.addEventListener("mouseup", (event) => {
+function handleWindowMouseUp(event) {
     const button = event.button;
     windowKeyEvents.push({ key: button, pressed: 0 });
-});
+}
 
-window.addEventListener("mousemove", (event) => {
+function handleWindowMouseMove(event) {
     windowMouseX = event.clientX;
     windowMouseY = event.clientY;
-});
+}
 
 function updateProgress(elem, progress) {
     let text = "";
