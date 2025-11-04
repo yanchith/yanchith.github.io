@@ -26,7 +26,6 @@ async function rendererInitialize(canvas) {
     surface.configure({
         device,
         format: navigator.gpu.getPreferredCanvasFormat(),
-        // alphaMode: "premultiplied", // XXX ?
     });
 
     const nearestSampler = device.createSampler({
@@ -278,8 +277,6 @@ function rendererDraw(renderer, rectInstanceArrayBuffer, rectTextureNames) {
             renderPass.setVertexBuffer(0, renderer.rectInstanceBuffer, offset);
             renderPass.setBindGroup(1, textureBindGroup, []);
             renderPass.draw(6, 1);
-        } else {
-            logError(`Can not render unknown texture: ${textureName}`);
         }
 
         offset += SIZE_OF_RECT_INSTANCE;

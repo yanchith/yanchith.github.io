@@ -1,18 +1,17 @@
-const GAME_VERSION = "0.2.5 (14 October 2025)";
+const GAME_VERSION = "0.2.6 (4 November 2025)";
 const WELCOME_HTML = `
 <p>
-This is a wasm port of a game prototype I created in summer 2025. The prototype is incomplete
-(missing mechanics, has temporary graphics/audio), but already playable. While it has interesting
-ideas, it also has serious design problems that are not ironed out as of the current vesion. Play at
-your own risk.
+This is a wasm port of a game prototype I created in summer 2025.
 </p>
 
 <p>
-Dungeons and Diagrams by Zachtronics (ruleset by Zach Barth) was a big influence at the beginning of
-the prototype, and its spirit still lingers here, albeit becoming fainter. If you enjoyed
-this game and never played Dungeons and Diagrams, be sure to try it out:
+While the prototype has interesting ideas, it also has serious design problems that are not ironed
+out as of the current vesion.
+</p>
 
-<a href="https://store.steampowered.com/app/1511780/Last_Call_BBS/">Last Call BBS</a>
+<p>
+<a href="https://store.steampowered.com/app/1511780/Last_Call_BBS/">Dungeons and Diagrams</a> by Zachtronics was a big influence at the beginning of the project, and its
+spirit still lingers here, albeit becoming fainter.
 </p>
 
 <p>
@@ -21,7 +20,7 @@ in this game. If you already played them and want to skip, this game does tell y
 </p>
 
 <p>
-The game is played with keyboard and mouse. It automatically saves progress into your browser's local storage.
+The game is played with keyboard and mouse. It automatically saves progress.
 </p>
 
 <p>Feedback is appreciated. My email is yanchith@withoutfearofwindorvertigo.com</p>
@@ -29,8 +28,46 @@ The game is played with keyboard and mouse. It automatically saves progress into
 <p style="font-size: 12px; margin-top: 100px; text-align: end">Game version: ${GAME_VERSION}</p>
 `;
 
+// TODO(jt): Link to people who have websites. This will require us to remove the replaceAll @Hack.
+const CREDITS_HTML = `
+<div>
+<h3>Design</h3>
+Game Design                                                          Jan Toth<br/>
+Puzzle Design                                                        Jan Toth<br/>
+Original Ruleset                                                     Zach Barth<br/>
+Original Puzzle Design                                               Zach Barth<br/>
 
-// TODO(jt): Make a "Making a build" comment, like we have in native_main.
+<h3>Programming</h3>
+Gameplay                                                             Jan Toth<br/>
+Engine                                                               Jan Toth<br/>
+
+<h3>Art</h3>
+Tiny Dungeon                                                         Oryx Design Lab<br/>
+
+<h3>Music</h3>
+RPG Music Pack                                                       Leohpaz<br/>
+Ambiences Pack                                                       JDSherbert<br/>
+
+<h3>Sound effects</h3>
+Minifantasy Forgotten Plains                                         Leohpaz<br/>
+Book Parchment UI                                                    Leohpaz<br/>
+RPG Essentials                                                       Leohpaz<br/>
+Ultimate UI SFX                                                      JDSherbert<br/>
+
+<h3>Used Software</h3>
+JAI Compiler and Modules                                             Jonathan Blow<br/>
+                                                                     Raphael Luba<br/>
+stb_vorbis                                                           Sean Barett<br/>
+<h3>Playtesters</h3>
+Lucia Tusimova                      Ondrej Slintak                   Stefan Mijucic<br/>
+Dusan Hetlerovic                    Areta Tothova                    Stefan Urbanek<br/>
+@Auex                               @Rupi                            @TechnicBeam<br/>
+Matthew VanDevander<br/>
+
+<h3>Special thanks</h3>
+Zach Barth                          Matthew VanDevander              Lucia Tusimova<br/>
+</div>
+`.replaceAll(/ /g, "\u00a0");
 
 // Numeric types in JAI, WASM and JavaScript (work in progress as I discover them)
 //
@@ -45,9 +82,6 @@ The game is played with keyboard and mouse. It automatically saves progress into
 // f64      f64     number
 // f32      f32     number
 
-// TODO(jt): Split main into two functions, where one compiles wasm, does asset work, etc, and the
-// other one creates the audio context and launches the game. This should also solve some async
-// audio issues we have later.
 async function main() {
     const [initialWidth, initialHeight] = computeDesiredDimensions();
 
@@ -55,6 +89,7 @@ async function main() {
     const canvas           = document.createElement("canvas");
     const overlay          = document.createElement("div");
     const overlayHtml      = document.createElement("div");
+    const overlayLink      = document.createElement("a");
     const overlayButton    = document.createElement("button");
 
     container.style.display            = "flex";
@@ -87,22 +122,43 @@ async function main() {
     overlay.style.left                = "0px";
     overlay.style.width               = "100vw";
     overlay.style.height              = "100vh";
-    overlay.style.overflow            = "hidden";
+    overlay.style["min-height"]       = "min-content";
+    overlay.style.overflow            = "scroll";
     overlay.style["z-index"]          = 1;
     overlay.style["background-color"] = "#151515ff";
+
+    let viewingCredits = false;
 
     overlayHtml.innerHTML = WELCOME_HTML;
     overlayHtml.style.margin  = "0px";
     overlayHtml.style.border  = "0px";
     overlayHtml.style.padding = "0px";
-    // overlayHtml.style.width   = `${initialWidth}px`;
     overlayHtml.style.width   = "800px";
     overlayHtml.style.color   = "#ffffff";
 
+    overlayLink.innerText = "View credits"
+    overlayLink.style.display       = "block";
+    overlayLink.style["margin-top"] = "20px";
+    overlayLink.style.color         = "#ffffff";
+    overlayLink.style["text-align"] = "end";
+
+    overlayLink.addEventListener("click", () => {
+        viewingCredits = !viewingCredits;
+        if (viewingCredits) {
+            overlayHtml.innerHTML = CREDITS_HTML;
+            overlayHtml.appendChild(overlayLink);
+            overlayLink.innerText = "View info";
+        } else {
+            overlayHtml.innerHTML = WELCOME_HTML;
+            overlayHtml.appendChild(overlayLink);
+            overlayLink.innerText = "View credits";
+        }
+    });
+
     overlayButton.disabled = true;
     overlayButton.style.display       = "block";
-    overlayButton.style["margin-top"] = "60px";
-    // overlayButton.style.width         = `${initialWidth}px`;
+    overlayButton.style["margin-top"]    = "60px";
+    overlayButton.style["margin-bottom"] = "5px"; // @Hack to make it visible when overflowing.
     overlayButton.style.width         = "800px";
     overlayButton.style.height        = "25px";
     overlayButton.style.color         = "#ffffff"
@@ -110,6 +166,7 @@ async function main() {
     overlayButton.style.border        = "0px";
     overlayButton.style.outline       = "1px solid #ffffff";
 
+    overlayHtml.appendChild(overlayLink);
     overlay.appendChild(overlayHtml);
     overlay.appendChild(overlayButton);
     container.appendChild(canvas);
@@ -126,18 +183,6 @@ async function main() {
 
         return;
     }
-
-    window.addEventListener("resize", () => {
-        const [width, height] = computeDesiredDimensions();
-
-        canvas.width  = width;
-        canvas.height = height;
-        canvas.style.width  = `${width}px`;
-        canvas.style.height = `${height}px`;
-
-        // overlayHtml.style.width = `${width}px`;
-        // overlayButton.style.width = `${width}px`;
-    });
 
     const progress = {
         majorSteps: ["Compiling Game", "Initializing Renderer", "Processing Assets", "Processing Puzzles"],
@@ -206,6 +251,8 @@ async function main() {
     const diagramsFree  = wasm.instance.exports.diagrams_free;
 
     const renderer = await rendererInitialize(canvas);
+    // Upload solid texture for color drawing (this is not optional!)
+    rendererUploadTextureRgbaUnorm(renderer, "", new Uint8Array([255, 255, 255, 255]), 1, 1);
 
     progress.majorDone += 1;
     updateProgress(overlayButton, progress);
@@ -421,24 +468,15 @@ async function main() {
                 const textureNameData  = diagramsRenderListsRectsGetTextureNameData(renderLists, i);
                 const textureName      = stringFromMemory(Number(textureNameData), Number(textureNameCount));
 
-                rendererFloat32ArrayPushRect(rectInstanceArray,
-                                             p0x, p0y, p1x, p1y,
-                                             texP0x, texP0y, texP1x, texP1y,
-                                             r, g, b, a);
+                if (renderer.textureBindGroups.has(textureName)) {
+                    rendererFloat32ArrayPushRect(rectInstanceArray,
+                                                 p0x, p0y, p1x, p1y,
+                                                 texP0x, texP0y, texP1x, texP1y,
+                                                 r, g, b, a);
 
-                rectTextureNames.push(textureName);
-
-
-                if (!renderer.textureBindGroups.has(textureName)) {
-                    // TODO(jt): @Cleanup @Hack We also support drawing without a texture, but because it is the
-                    // same shader, we need to make sure there is a placeholder texture uploaded and
-                    // associated with empty textureName. We should probably just pre-upload this empty
-                    // texture. The alternative is doing a color-only pipeline, but that won't play very
-                    // well with batching.
-                    //
-                    // Once we do batching, we can just include a white square somewhare in the sprite atlas.
-                    log(`Uploading temporary texture for name: ${textureName}`);
-                    rendererUploadTextureRgbaUnorm(renderer, textureName, new Uint8Array([255, 255, 255, 255]), 1, 1);
+                    rectTextureNames.push(textureName);
+                } else {
+                    logError(`Can not render with unknown texture ${textureName}`);
                 }
             }
 
@@ -464,6 +502,8 @@ async function main() {
                 window.removeEventListener("mouseup",   handleWindowMouseUp);
                 window.removeEventListener("mousemove", handleWindowMouseMove);
 
+                window.removeEventListener("resize", handleWindowResize);
+
                 overlayHtml.innerHTML = `<p style="text-align: center;">Thank you for playing</p>`;
             } else {
                 window.requestAnimationFrame(loop);
@@ -473,8 +513,26 @@ async function main() {
         overlayButton.removeEventListener("click", handleOverlayButtonClick);
         overlay.style.display = "none";
 
+        window.addEventListener("keydown",   handleWindowKeyDown);
+        window.addEventListener("keyup",     handleWindowKeyUp);
+        window.addEventListener("mousedown", handleWindowMouseDown);
+        window.addEventListener("mouseup",   handleWindowMouseUp);
+        window.addEventListener("mousemove", handleWindowMouseMove);
+
+        function handleWindowResize() {
+            const [width, height] = computeDesiredDimensions();
+
+            canvas.width  = width;
+            canvas.height = height;
+            canvas.style.width  = `${width}px`;
+            canvas.style.height = `${height}px`;
+        }
+
+        window.addEventListener("resize", handleWindowResize);
+
         window.requestAnimationFrame(loop);
     }
+
 
     overlayButton.addEventListener("click", handleOverlayButtonClick);
     overlayButton.disabled  = false;
@@ -786,12 +844,6 @@ const windowKeyEvents = [];
 let   windowMouseX;
 let   windowMouseY;
 
-window.addEventListener("keydown",   handleWindowKeyDown);
-window.addEventListener("keyup",     handleWindowKeyUp);
-window.addEventListener("mousedown", handleWindowMouseDown);
-window.addEventListener("mouseup",   handleWindowMouseUp);
-window.addEventListener("mousemove", handleWindowMouseMove);
-
 function handleWindowKeyDown(event) {
     const key = event.key;
     windowKeyEvents.push({ key, pressed: 1 });
@@ -866,11 +918,6 @@ function computeDesiredDimensions() {
 function isAssetPath(path /*string*/) {
     return path.startsWith("./data") || path.startsWith("data")
 }
-
-// TODO(jt): The functions that operate on the WASM memory take numbers instead of bigints, because
-// that's what arrays in javascript can be indexed by. This is not very nice to use, and in general
-// our pointers and lengths are mostly BigInts and only sometimes numbers. We could make the memory
-// view and address functions operate on both BigInts and numbers by converting inside... eh?
 
 function byteViewFromMemory(pointer /*number*/, length /*number*/) {
     const u8 = new Uint8Array(memory.buffer);

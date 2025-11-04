@@ -21,11 +21,8 @@ fn vs_main(@builtin(vertex_index) vertex_index:   u32,
            @location(1)           a_texture_rect: vec4f,
            @location(2)           a_color:        vec4f) -> VertexOut
 {
-    // XXX: Audit comments, as we removed the tex coord flip.
-
-    // Remap the pixel based coordinates to normalized NDC (for destination) and
-    // UV (for source) coordinates. Note that we have to flip dst_y, because
-    // WebGPU framebuffer is Y-up.
+    // Remap the pixel based coordinates to normalized NDC (for destination) and UV (for source)
+    // coordinates. Destination Y is already pre-flipped on the CPU for us.
     let dst_p0x = 2.0 * a_rect.x / u_screen.width - 1.0;
     let dst_p0y = 2.0 * a_rect.y / u_screen.height - 1.0;
     let dst_p1x = 2.0 * a_rect.z / u_screen.width - 1.0;
