@@ -422,7 +422,15 @@ async function main() {
     const rectTextureNames  = [];
 
     function handleOverlayButtonClick() {
+        let frameIndex = 0;
+
         function loop(timeMillis) {
+            frameIndex++;
+            if (frameIndex > 1000) {
+                log(`WASM memory size: ${formatSize(memory.buffer.byteLength)}`);
+                frameIndex = 0;
+            }
+
             const timeSeconds = timeMillis * 0.001;
 
             const canvasClientRect = canvas.getBoundingClientRect();
