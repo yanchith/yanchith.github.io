@@ -3,7 +3,7 @@ document my subjective experience of making a medium-sized game with complicated
 using an engine.
 
 In between 2021 and 2024, I was working on a game. The game's core idea as it ended up (it evolved
-during development) is something that inspires me even today, and I would still like to make a
+during development) being something that inspires me even today, and I would still like to make a
 similar game at some point, but at the time I was working on it, it was way too ambitious of a
 project for my skill level.
 
@@ -17,16 +17,16 @@ previously unvisited parts of the overworld.
 
 While it wasn't set in stone, when I thought about the mood and feel of the game, it was a
 Zelda-esque thing, where the party of adventurers advanced through an fantasy-themed and somewhat
-hazardous world to... find treasure? rescue a princess? slat a demon and save the world? I never
-really decided. This would have become clear as the game neared shipping. No story (or an obscure
+hazardous world to... find treasure? rescue a princess? defeat a demon and save the world? I never
+really decided. This would ideally become clear as the game neared shipping. No story (or an obscure
 and hidden story) was also a possibility.
 
 In this post, or perhaps a series of posts, I'd like to talk about what I did. Most of it is
-probably going to come off as very negative, but I did look at the game recently, and I honestly
-also felt joy and pride about how much stuff I've built.
-
+probably going to come off as negative, but I did look at the game recently, and I honestly also
+felt joy and pride about how much I've built.
 
 # building an engine
+
 - allocation, memory management, collections
 - portability
 - serialization and versioning
@@ -37,7 +37,6 @@ also felt joy and pride about how much stuff I've built.
 
 - 3D sokoban
 - realtime (asynchronously moving entities)
-- wrapping coordinates
 - multiple characters
 - multiple characters controlled at once
 - overworld and levels
