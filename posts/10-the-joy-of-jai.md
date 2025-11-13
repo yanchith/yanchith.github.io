@@ -1,5 +1,5 @@
-I used JAI this summer for a videogame project that ended up being between around 15000 lines of
-code at the time of writing (XXX: Link), so not exactly a tiny toy program anymore.
+I used JAI this summer for a videogame project (XXX: Link) that ended up being between around 15
+thousand lines of code at the time of writing, so not exactly a tiny toy program anymore.
 
 The overall experience was that of being productive and the language allowing me to do what I want,
 leaving the responsibility of cleaning my own mess to me. I prefer it this way, becuse, on the one
