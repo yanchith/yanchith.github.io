@@ -7,25 +7,39 @@ and Diagrams (XXX: Link) in the preceding months, so my head was full of ideas a
 observation gameplay. On top of that, I have had access to the JAI language beta for quite some
 time, and felt bad that I still haven't done a nontrivial thing with it yet.
 
-And thus, a naive motivation came to be: make a game that is like Dungeons and Diagrams, but has
-Dragonsweeper observation gameplay. Also, because this is going to be just a simple 2D game this
-time (right?!), it is fine to program it in a language I am not proficient in, so that I can form an
-informed opinion.
+And thus, a naive motivation came to be: make a game that is like Dungeons and Diagrams, but also
+has Dragonsweeper observation gameplay. Also, because this is going to be just a simple 2D game, it
+is okay to program it in a language I am not proficient in, so that I can form an informed opinion
+on that language.
 
-The JAI part probably deserves its own small post, but I'll constrain it to a few sentences. The
-language is good! It has rough spots and could use polish in places, and I was missing my libraries
-from previous projects, but I was almost instanly more productive with it than with my previous
-workhorse. I believe this is because a deep design principle of JAI is to trust the programmer,
-which then surfaces in many of the language's features.
+While it might seem a little like a setup for failure, this is by no means intentional. I'll address
+the easy parts first: the programming went well, and I would change nothing about it.
 
-On the one hand, games need a lot of iteration and trying things out, but on the other hand,
-finishing a game requires a fair amount of hardening: systematizing, fixing bugs, optimization. So,
-at the beginning of a project, you want to be messy and unconstrained, and by the end you need to be
-organized and rigid. JAI allows you to tune this dial as needed, and gives you tools to do so
-(metaprogramming, profiling tools, instrumenting allocations, codex view, etc) (XXX: Improve this
-list). It is very much a language where you have to know what you are doing, and it probably gives
-you many ways to shoot yourself in the foot, but it also doesn't do unnecessary restrictions and
-guard rails. Coming from a more restrictive unvironment, I found it empowering to be able to just do
-things without having to prove to the compiler they are correct.
+My experience with JAI probably deserves a larger post, but I'll constrain myself. I was productive
+with the language, and it felt good to program in! It has rough spots and could use polish in
+places, and I was missing the libraries I wrote from my previous projects, but I was almost
+instantly productive, and it never forced me to do a huge refactor as a response to a small change
+in the code. I believe this is because a deep design principle of JAI is to trust the programmer,
+which then surfaces in many of the language's features (or sometimes lack thereof).
+
+(XXX: Move lists to separate post?)
+
+
+(XXX: Cut the following paragraph?)
+
+
 
 Now on to the game.
+
+
+
+
+- initial idea
+
+- prototyping mechanics
+- counting paths in a graph
+
+- first version
+- first playtesters
+
+- second version
