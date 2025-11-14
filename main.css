@@ -222,4 +222,8 @@ footer p {
     footer {
         margin-top: 50px;
     }
+
+    footer p {
+        font-size: 15px;
+    }
 }
