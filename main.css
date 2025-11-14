@@ -180,7 +180,17 @@ footer p {
 
 /* -- breakpoints -- */
 @media print {
-    .pagebreak { break-before: page }
+    div {
+        break-inside: avoid;
+    }
+
+    .pagebreak {
+        break-before: page;
+    }
+
+    .noprint {
+        display: none;
+    }
 }
 
 @media (max-width: 1200px) {
