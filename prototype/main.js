@@ -1,4 +1,4 @@
-const GAME_VERSION = "0.2.6 (4 November 2025)";
+const GAME_VERSION = "0.2.7 (18 November 2025)";
 const WELCOME_HTML = `
 <p>
 This is a wasm port of a game prototype I created in summer 2025.
@@ -12,11 +12,6 @@ out as of the current vesion.
 <p>
 <a href="https://store.steampowered.com/app/1511780/Last_Call_BBS/">Dungeons and Diagrams</a> by Zachtronics was a big influence at the beginning of the project, and its
 spirit still lingers here, albeit becoming fainter.
-</p>
-
-<p>
-Part of that lingering spirit is that almost all levels from Dungeons and Diagrams are still present
-in this game. If you already played them and want to skip, this game does tell you how.
 </p>
 
 <p>
@@ -35,7 +30,6 @@ const CREDITS_HTML = `
 Game Design                                                          Jan Toth<br/>
 Puzzle Design                                                        Jan Toth<br/>
 Original Ruleset                                                     Zach Barth<br/>
-Original Puzzle Design                                               Zach Barth<br/>
 
 <h3>Programming</h3>
 Gameplay                                                             Jan Toth<br/>
@@ -174,16 +168,6 @@ async function main() {
 
     document.body.appendChild(container);
 
-    if (!navigator.gpu) {
-        const p = document.createElement("p");
-        p.innerText   = "Your browser does not support WebGPU. Please use a WebGPU capable browser to play.";
-        p.style.color = "#ff0000";
-
-        overlayHtml.appendChild(p);
-
-        return;
-    }
-
     const progress = {
         majorSteps: ["Compiling Game", "Initializing Renderer", "Processing Assets", "Processing Puzzles"],
         majorDone: 0,
@@ -232,14 +216,14 @@ async function main() {
 
     const diagramsRenderListsAlloc                    = wasm.instance.exports.diagrams_render_lists_alloc;
     const diagramsRenderListsGetRectCount             = wasm.instance.exports.diagrams_render_lists_get_rect_count;
-    const diagramsRenderListsRectsGetRectP0x          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p0x;
-    const diagramsRenderListsRectsGetRectP0y          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p0y;
-    const diagramsRenderListsRectsGetRectP1x          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p1x;
-    const diagramsRenderListsRectsGetRectP1y          = wasm.instance.exports.diagrams_render_lists_rects_get_rect_p1y;
-    const diagramsRenderListsRectsGetTextureRectP0x   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p0x;
-    const diagramsRenderListsRectsGetTextureRectP0y   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p0y;
-    const diagramsRenderListsRectsGetTextureRectP1x   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p1x;
-    const diagramsRenderListsRectsGetTextureRectP1y   = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_p1y;
+    const diagramsRenderListsRectsGetRectX            = wasm.instance.exports.diagrams_render_lists_rects_get_rect_x;
+    const diagramsRenderListsRectsGetRectY            = wasm.instance.exports.diagrams_render_lists_rects_get_rect_y;
+    const diagramsRenderListsRectsGetRectW            = wasm.instance.exports.diagrams_render_lists_rects_get_rect_w;
+    const diagramsRenderListsRectsGetRectH            = wasm.instance.exports.diagrams_render_lists_rects_get_rect_h;
+    const diagramsRenderListsRectsGetTextureRectX     = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_x;
+    const diagramsRenderListsRectsGetTextureRectY     = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_y;
+    const diagramsRenderListsRectsGetTextureRectW     = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_w;
+    const diagramsRenderListsRectsGetTextureRectH     = wasm.instance.exports.diagrams_render_lists_rects_get_texture_rect_h;
     const diagramsRenderListsRectsGetTextureNameCount = wasm.instance.exports.diagrams_render_lists_rects_get_texture_name_count;
     const diagramsRenderListsRectsGetTextureNameData  = wasm.instance.exports.diagrams_render_lists_rects_get_texture_name_data;
     const diagramsRenderListsRectsGetColorR           = wasm.instance.exports.diagrams_render_lists_rects_get_color_r;
@@ -251,6 +235,17 @@ async function main() {
     const diagramsFree  = wasm.instance.exports.diagrams_free;
 
     const renderer = await rendererInitialize(canvas);
+    if (!renderer.initialized) {
+        const p = document.createElement("p");
+        p.innerText   = "This game requires WebGPU to play, but your browser does not support it.";
+        p.style.color = "#ff0000";
+
+        overlay.appendChild(p);
+
+        return;
+    }
+
+
     // Upload solid texture for color drawing (this is not optional!)
     rendererUploadTextureRgbaUnorm(renderer, "", new Uint8Array([255, 255, 255, 255]), 1, 1);
 
@@ -457,15 +452,17 @@ async function main() {
             const rectCount = diagramsRenderListsGetRectCount(renderLists);
             for (let i = 0n; i < rectCount; ++i) {
                 // The game's coordinate system is Y-down, but WebGPU's NDC space is Y-up, so we flippity here.
-                const p0x = diagramsRenderListsRectsGetRectP0x(renderLists, i);
-                const p0y = renderer.surface.canvas.height - diagramsRenderListsRectsGetRectP0y(renderLists, i);
-                const p1x = diagramsRenderListsRectsGetRectP1x(renderLists, i);
-                const p1y = renderer.surface.canvas.height - diagramsRenderListsRectsGetRectP1y(renderLists, i);
+                const canvasHeight = renderer.surface.canvas.height;
 
-                const texP0x = diagramsRenderListsRectsGetTextureRectP0x(renderLists, i);
-                const texP0y = diagramsRenderListsRectsGetTextureRectP0y(renderLists, i);
-                const texP1x = diagramsRenderListsRectsGetTextureRectP1x(renderLists, i);
-                const texP1y = diagramsRenderListsRectsGetTextureRectP1y(renderLists, i);
+                const x = diagramsRenderListsRectsGetRectX(renderLists, i);
+                const y = diagramsRenderListsRectsGetRectY(renderLists, i);
+                const w = diagramsRenderListsRectsGetRectW(renderLists, i);
+                const h = diagramsRenderListsRectsGetRectH(renderLists, i);
+
+                const texX = diagramsRenderListsRectsGetTextureRectX(renderLists, i);
+                const texY = diagramsRenderListsRectsGetTextureRectY(renderLists, i);
+                const texW = diagramsRenderListsRectsGetTextureRectW(renderLists, i);
+                const texH = diagramsRenderListsRectsGetTextureRectH(renderLists, i);
 
                 const r = diagramsRenderListsRectsGetColorR(renderLists, i);
                 const g = diagramsRenderListsRectsGetColorG(renderLists, i);
@@ -477,9 +474,11 @@ async function main() {
                 const textureName      = stringFromMemory(Number(textureNameData), Number(textureNameCount));
 
                 if (renderer.textureBindGroups.has(textureName)) {
+                    // Rects in the renderer are defined by two points instead of point+dimension,
+                    // so we convert here.
                     rendererFloat32ArrayPushRect(rectInstanceArray,
-                                                 p0x, p0y, p1x, p1y,
-                                                 texP0x, texP0y, texP1x, texP1y,
+                                                 x, canvasHeight - y, x + w, canvasHeight - (y + h),
+                                                 texX, texY, texX + texW, texY + texH,
                                                  r, g, b, a);
 
                     rectTextureNames.push(textureName);

@@ -7,16 +7,26 @@ const MAX_RECT_INSTANCES = 1024;
 
 async function rendererInitialize(canvas) {
     if (!navigator.gpu) {
-        // TODO(jt): Display a message on screen, or something.
         return { initialized: false };
     }
 
-    const adapter = await navigator.gpu.requestAdapter();
+    let adapter;
+    try {
+        adapter = await navigator.gpu.requestAdapter();
+    } catch (e) {
+        return { initialized: false };
+    }
+
     if (!adapter) {
         return { initialized: false };
     }
 
-    const device = await adapter.requestDevice();
+    let device;
+    try {
+        device = await adapter.requestDevice();
+    } catch (e) {
+        return { initialized: false }
+    }
 
     const surface = canvas.getContext("webgpu");
     if (!surface) {
