@@ -15,85 +15,98 @@
     <a href="../index.html">Go back</a>
     <section>
       <div>
-        <h1>My experience with the JAI language</h1>
+        <h1>My experience with JAI</h1>
       </div>
       <div><!-- EMPTY --></div>
       <div>
         <p class="mt25">
-          I used JAI this summer for a videogame project (https://withoutfearofwindorvertigo.com/prototype)
-          that ended up being between around 15k lines of code at the time of writing, so not huge, but not
-          tiny anymore. The code constitutes a 2D puzzle game, running both natively and in the browser, and
-          an automatic solver for the game's puzzles. If the game grows, there will likely also be a puzzle
-          generator, more powerful asset system, better graphics, etc.
+          I used the language this summer for a <a href="../prototype/index.html">videogame
+          project</a> that is around 15k lines of code at the time of writing this post, so not
+          huge, but not tiny anymore. The code constitutes a 2D puzzle game (running both natively
+          and in the browser) and an automatic solver for the game's puzzles. If the game grows,
+          there will likely also be a puzzle generator, more powerful asset system, better graphics,
+          etc.
         </p>
 
         <p>
-          The overall experience was that I didn't really have to think about the language very much. It let
-          me to do what I wanted, leaving the responsibility of cleaning my own mess to me, but also giving me
-          the tools to do the cleaning. I prefer it this way, because, on the one hand, games need a lot of
-          iteration and trying things out, but on the other, finishing a game requires a fair amount of
-          hardening: systematizing, fixing bugs, optimization. So, at the beginning of a project, you want to
-          be messy and unconstrained, and by the end you need to be organized and precise. JAI allows you to
-          tune this dial as needed, and gives you tools to do so (metaprogramming, profiling tools,
-          instrumenting allocations, visualization tools like codex view, etc). To be fair, in this project I
-          utilized the "let me make a mess" aspect more than the "help me clean it up" one, both because the
-          game is small enough for it to not require large-scale hardening and this also isn't my first game,
-          so at this point I can avoid some programming and design mistakes ahead of time.
+          This post is written from the perspective of a programmer who values first principles
+          thinking and is directed by a handmade ethos, but at the same time (because of historical
+          circumstances) has been programming mainly in a C-like subset of Rust for the last years 8
+          years (with a little bit of C sprinkled here and there). I don't want to bash Rust here
+          and I think it got many things right when viewed through the lense of being a cleaned-up
+          C++, but I also do have my fair share of <a href="./6.html">grievances</a> with it, mainly
+          boiling down to the fact that Rust does not trust the programmer. In JAI, I found it
+          refreshing to be able to just do things without having to prove to the compiler they are
+          correct. I apologize in advance to the people with hardcode C background: some of the
+          ideas presented here will likely be obvious to you, but they were not immediately obvious
+          to me a few years ago. I had to grow into them.
         </p>
 
         <p>
-          JAI is very much a language where you have to know what you are doing. Coming from a more
-          restrictive environment - until this summer, a C-like subset of Rust has been my programming
-          workhorse, for which I have a great deal of respect, but with which I have also accumulated a fair
-          share of grievances - I found it refreshing to be able to just do things without having to prove to
-          the compiler they are correct. I apologize in advance to people with hardcode C background: some of
-          the ideas presented here will likely be obvious to you, but they were not immediately obvious to me
-          a few years ago, and I had to grow into them.
+          The overall experience with JAI was one underlined by pragmaticism. I didn't really have
+          to think about the language very much. It let me to do what I wanted, leaving the
+          responsibility of cleaning my own mess to me, but also giving me the tools to do the
+          cleaning. This is a good fit for projects with a design exploration phase in their
+          development roadmap (most videogames). These projects need a lot of iteration and trying
+          things out throughout the process, but shipping requires a fair amount of hardening:
+          systematizing, fixing bugs, optimization. So, at the beginning of development, you want to
+          be messy and unconstrained, and by the end you need to be organized and precise. JAI
+          allows you to tune this dial as needed, and gives you tools to gradually harden:
+          metaprogramming, profiling tools, instrumenting allocations, visualization tools, etc. To
+          be fair, in this project I utilized the "let me make a mess" aspect of the language more
+          than the "help me clean it up" one, both because the game is small enough for it to not
+          require large-scale hardening before shipping, and this also isn't my first game, so at
+          this point I can avoid some programming and design mistakes ahead of time.
         </p>
 
         <p>
-          Here's the things I liked, followed by a few I have reservations about. Items in both lists came to
-          be by what I encountered while working on the project, as well as what just happened to be in my
-          head at the time, so they are by no means complete.
+          Here's a list of things that resonated with me, followed by a list of the few
+          reservations. Both lists are by no means complete, rather the items are mostly what I
+          encountered while working on the game.
         </p>
 
-        <h2>Things I really enjoyed</h2>
+        <h2>Things that spoke to me</h2>
 
         <ul>
           <li>
-            Pointers and indices are 64-bit and signed. No size_t/usize that have different sizes based on the
-            target CPU. Being signed, you don't need to care about underflow when doing arithmetic. This is a
-            breath of fresh air. Yes, the always 64-bit thing makes it hard to port JAI to non-64-bit
-            platforms, so it is something to consider, if you know you are going to need that. However, all of
-            PC, servers, Mac, the consoles, phones and tablets, and now even WASM is 64-bit, so you do get
-            quite a bit of platform support even with this limitation.
+            Pointers and indices are 64-bit and signed. No size_t/usize that have different sizes
+            based on the target CPU. Being signed, you don't need to care about underflow when doing
+            arithmetic. This is a breath of fresh air. Yes, being 64-bit always makes it hard to
+            port JAI to non-64-bit platforms, so it is something to consider if you know you are
+            going to need that. However, today all of consumer PCs, servers, Macs, consoles, phones
+            and tablets, and now even WASM is 64-bit, so you are able to target quite a few
+            platforms even with this design decision.
           </li>
 
           <li>
             Integer types widen automatically, but truncating or reinterpretting requires an
-            explicit cast. Perhaps it is obvious that this is how it should be, but both C, C++ and
-            Rust do get this wrong. C and C++ have implicit conversions even in the wrong direction,
-            while Rust goes overboard and requires you to explicitly convert a smaller integer type
-            to a larger integer type (but at least you can do it with the From trait, so you can
-            tune your house style so that the benign casts look different from the potentially
-            dangerous ones).
+            explicit cast. This is a small thing, perhaps it is obvious that this is how it should
+            be, but both C, C++ and Rust do get this wrong. C and C++ have implicit conversions even
+            in the wrong direction, while Rust goes overboard and requires you to explicitly convert
+            even a smaller integer type to a larger integer type.
           </li>
 
           <li>
             Structs are plain old data and can contain any bytes you like. Again, this is obvious,
-            and yet people get this wrong. In JAI, there no such thing as compiler-exploited padding
-            (or other unused bits) that would escalate your correctness bugs to UB. In languages
-            with heavy typesystems, there is a "correct by construction" philosophy: you can only
-            create correct values for a type (e.g. NonZeroU32 in Rust). You can imagine creating
-            your own types whose constructors would enforce various invariants. While it initially
-            might seem enticing, I disagree with this philosophy completely, as the cost far
-            outweights any benefits. The cost is that you can not treat these values as plain data
-            anymore. Zero-copy deserialization is now not possible, because the compiler could have
-            generated code that acted on the data stored in the struct padding, and just the act of
-            creating a value with an invalid bit pattern is instant UB. Need to deserialize
-            gigabytes of data from disk? If it has attached invariants that the compiler tracks, you
-            can not just reinterpret the memory after you load the file, but also have to validate
-            before you cast, otherwise you'll get UB. Fortunately, in JAI, you get none of this.
+            and yet people get this wrong. In JAI, there no such thing as compiler-exploited unused
+            bits (e.g. struct padding, but also the unused upper bits of booleans or enums) that
+            would escalate your correctness bugs to UB. In languages with heavy typesystems, there
+            is a "correct by construction" philosophy: you can only create correct values for a type
+            (e.g. NonZeroU32 in Rust, but you can imagine creating your own types with various
+            upheld invariants), and this allegedly makes your program more correct. While it
+            initially might seem enticing, I disagree with this philosophy, as the cost far
+            outweights any correctness benefits. The cost is that you can not treat these values as
+            plain data anymore. Zero-copy deserialization is now not possible, because the compiler
+            could have generated code that acted on the "unused" bits, and just the act of creating
+            a value with an invalid bit pattern is now instant UB. Need to deserialize gigabytes of
+            data from disk? If it has attached invariants that the compiler assumes, you can not
+            just reinterpret the memory after you load the file (a common way of cheap
+            deserialization of simpler binary formats), but also have to validate the raw bytes
+            before you cast, otherwise you'll get UB. This might seem like a minor thing, but in my
+            last game project this came up so often that I eventually had to rewrite multiple
+            systems (entity storage, serialization, undo buffers), until I finally arrived to the
+            conclusion that I should just have gone the plain old data route from the
+            beginning. Fortunately, in JAI, you are not encouraged to not do plain old data.
           </li>
 
           <li>
