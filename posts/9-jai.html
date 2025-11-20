@@ -166,35 +166,36 @@
           </li>
 
           <li>
-            Context is convenient, but I don't think I got a lot of mileage out of it, and I had to pay for it
-            (slighly). I only use the context allocator, temporary storage and context logger, and can't think
-            of anything else I'd like to put there. For the allocator, I could have lived with, or even
-            preferred passing the memory arenas as explicit parameters compared to setting the context
-            allocator. For logging, the way I use a logger is amenable for it being just a global
-            variable. When another language calls a JAI dynamic library, you have to create an empty context
-            in all entrypoints, which is inconvenient. I am considering that for future projects in the
-            language, I won't use Context in my programs, perhaps with the exception of overriding the
-            allocator of libraries someone else wrote.
+            Context is convenient, but I don't think I got a lot of mileage out of it, and I had to
+            pay for it (slightly). I only use the context allocator, temporary storage and context
+            logger, and can't think of anything else I'd like to put there. For the allocator, I
+            could have lived with, or even preferred passing the memory arenas as explicit
+            parameters instead. For logging, the way I use a logger is amenable for it being just a
+            global variable. The downside I did experience is that when another language calls a JAI
+            dynamic library, you have to create an empty context in almost all entrypoints, which is
+            inconvenient. I am considering to not use Context for future projects, perhaps with the
+            exception of overriding the allocator of libraries someone else wrote.
           </li>
 
           <li>
-            The #poke_name thing. Modules by default do not see code from other modules. This is sometimes
-            inconvenient, one example being when you make a struct and you want to use it as a parameter to
-            the array_find function, or a key in a hash table. By itself, the callee module doesn't see the
-            operator== for the struct. #poke_name is the temporary workaround that lets you make the module
-            aware of your stuff, but it is not very ergonomic or transparent. I am looking forward to having a
-            better version of this.
+            The #poke_name thing. Modules by default do not see code from other modules. This is
+            sometimes inconvenient, one example being when you make a struct and you want to use it
+            as a parameter to the array_find function, or a key in a hash table. By itself, the
+            callee module doesn't see the operator== for the struct. #poke_name is the temporary
+            workaround that lets you make the module aware of your stuff, but it is not very easy to
+            use or transparent. I am looking forward to having a better version of this.
           </li>
 
           <li>
-            I personally would like a stricter separation of OS-specific from platform-independent code. These
-            days, I default to having explicit, Casey-style platform layers, but the JAI modules go the (far
-            more travelled) route of abstracting over the common features of multiple APIs in their
-            internals. I can still do the Casey thing, but for that I have to ignore some modules shipped with
-            the compiler (File, Thread, Window_Creation, Input, Simp, Sound_Player) and make my own. However,
-            there's a few things I can't really change, like Temporary_Storage being partially defined in the
-            compiler, or write_string being defined by Runtime_Support.jai. Overall these ideals of mine are
-            quite very platonic, and in reality I don't mind the more pragmatic approach that Jon took.
+            I personally would like a stricter separation of OS-specific from platform-independent
+            code. These days, I default to having explicit, Casey-style platform layers, but the JAI
+            modules go the (far more travelled) route of abstracting over the common features of
+            multiple APIs in their internals. I can still do the Casey thing, but for that I have to
+            ignore some modules shipped with the compiler (File, Thread, Window_Creation, Input,
+            Simp, Sound_Player) and make my own. However, there's a few things I can't really
+            change, like Temporary_Storage being partially defined in the compiler, or write_string
+            being defined in Runtime_Support. I realize that these are probably just my platonic
+            ideals, and in reality I don't mind the more pragmatic approach that Jon took.
           </li>
 
           <li>
