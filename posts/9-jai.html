@@ -22,24 +22,23 @@
         <p class="mt25">
           I used the language this summer for a <a href="../prototype/index.html">videogame
           project</a> that is around 15k lines of code at the time of writing this post, so not
-          huge, but not tiny anymore. The code constitutes a 2D puzzle game (running both natively
-          and in the browser) and an automatic solver for the game's puzzles. If the game grows,
-          there will likely also be a puzzle generator, more powerful asset system, better graphics,
-          etc.
+          huge, but not exactly tiny anymore. The code constitutes a 2D puzzle game (running both
+          on Windows, macOS and in the browser) and an automatic solver for the game's puzzles. If the game
+          grows, there will likely also be a puzzle generator, more powerful asset system, better
+          graphics, etc.
         </p>
+      </div>
+      <div><!-- EMPTY --></div>
 
+      <div>
         <p>
           This post is written from the perspective of a programmer who values first principles
-          thinking and is directed by a handmade ethos, but at the same time (because of historical
-          circumstances) has been programming mainly in a C-like subset of Rust for the last years 8
-          years (with a little bit of C sprinkled here and there). I don't want to bash Rust here
-          and I think it got many things right when viewed through the lense of being a cleaned-up
-          C++, but I also do have my fair share of <a href="./6.html">grievances</a> with it, mainly
-          boiling down to the fact that Rust does not trust the programmer. In JAI, I found it
-          refreshing to be able to just do things without having to prove to the compiler they are
-          correct. I apologize in advance to the people with hardcode C background: some of the
-          ideas presented here will likely be obvious to you, but they were not immediately obvious
-          to me a few years ago. I had to grow into them.
+          thinking and is directed by a handmade ethos, but at the same time, because of historical
+          circumstances, has been programming mainly in a C-like subset of Rust for the last years 8
+          years (with a little bit of C sprinkled here and there). I apologize in advance to the
+          people with hardcode C background: some of the ideas presented here will likely be obvious
+          to you, but they were not immediately obvious to me a few years ago. I had to grow into
+          them.
         </p>
 
         <p>
@@ -47,21 +46,31 @@
           to think about the language very much. It let me to do what I wanted, leaving the
           responsibility of cleaning my own mess to me, but also giving me the tools to do the
           cleaning. This is a good fit for projects with complicated or unclear designs. These need
-          a lot of iteration exoerimentation in the beginnning, but shipping any project requires
-          hardening: systematizing, fixing bugs, optimization. So, at the beginning of development,
-          you want to be messy and unconstrained, and by the end you need to be organized and
-          precise. JAI allows you to turn this dial as needed, and gives you tools to gradually
-          harden: metaprogramming, profiling tools, instrumenting allocations, visualization tools,
-          etc. To be fair, in my project, I utilized the "let me make a mess" aspect of the language
-          more than the "help me clean it up" one, both because the game is small enough for it to
-          not require large-scale cleanup before shipping, and this also isn't my first game, so at
-          this point I can avoid some programming and design mistakes ahead of time.
+          a lot of iteration and experimentation, but shipping any project requires hardening:
+          systematizing, fixing bugs, optimization. So, somewhere during development, you want to
+          transition from being messy and unconstrained to being organized and precise. JAI allows
+          you to turn this dial as needed, and gives you tools to gradually improve the quality:
+          metaprogramming, profiling tools, instrumenting allocations, visualization tools, etc. To
+          be fair, in my project, I utilized the "let me make a mess" aspect of the language more
+          than the "help me clean it up" one, both because the game is still small enough for it to
+          not require large-scale cleanup before shipping the current prototype version, and this
+          also isn't my first game, so at this point I can avoid some programming and design
+          mistakes ahead of time.
         </p>
+      </div>
+      <div>
+        <div class="videocontent">
+          <video autoplay loop width="600">
+            <source src="./9-codex.webm" type="video/webm" />
+          </video>
+          <p>Codex view of the WASM build of the game.</p>
+        </div>
+      </div>
 
+      <div>
         <p>
-          Here's a list of things that resonated with me, followed by a list of the few
-          reservations. Both lists are by no means complete, rather the items are mostly what I
-          encountered while working on the game.
+          Here's things that resonated with me, followed by a few reservations. Both lists are by no
+          means complete, rather the items are mostly what I encountered while working on the game.
         </p>
 
         <h2>Things that spoke to me</h2>
@@ -80,55 +89,63 @@
           <li>
             Integer types widen automatically, but truncating or reinterpretting requires an
             explicit cast. This is a small thing, perhaps it is obvious that this is how it should
-            be, but both C, C++ and Rust do get this wrong. C and C++ have implicit conversions even
-            in the wrong direction, while Rust goes overboard and requires you to explicitly convert
-            even a smaller integer type to a larger integer type.
+            be, but both C, C++ and Rust do get this wrong. C and C++ have implicit conversions that
+            happily lose data, while Rust goes overboard and requires you to explicitly convert even
+            when widening.
           </li>
 
           <li>
             Structs are plain old data and can contain any bytes you like. Again, this is obvious,
             and yet people get this wrong. In JAI, there no such thing as compiler-exploited unused
-            bits (e.g. struct padding, but also the unused upper bits of booleans or enums) that
-            would escalate your correctness bugs to UB. In languages with heavy typesystems, there
-            is a "correct by construction" philosophy: you can only create correct values for a type
-            (e.g. NonZeroU32 in Rust, but you can imagine creating your own types with various
-            upheld invariants), and this allegedly makes your program more correct. While it
-            initially might seem enticing, I disagree with this philosophy, as the cost far
-            outweights any correctness benefits. The cost is that you can not treat these values as
-            plain data anymore. Zero-copy deserialization is now not possible, because the compiler
-            could have generated code that acted on the "unused" bits, and just the act of creating
-            a value with an invalid bit pattern is now instant UB. Need to deserialize gigabytes of
-            data from disk? If it has attached invariants that the compiler assumes, you can not
-            just reinterpret the memory after you load the file (a common way of cheap
-            deserialization of simpler binary formats), but also have to validate the raw bytes
-            before you cast, otherwise you'll get UB. This might seem like a minor thing, but in my
-            last game project this came up so often that I eventually had to rewrite multiple
-            systems (entity storage, serialization, undo buffers), until I finally arrived to the
-            conclusion that I should just have gone the plain old data route from the
-            beginning. Fortunately, in JAI, you are not encouraged to not do plain old data.
+            bits (e.g. struct padding or upper bits of booleans, pointers or enums) that would
+            escalate your correctness bugs to UB. For contrast, in languages with heavy typesystems,
+            there is a "correct by construction" philosophy: you can only create correct values for
+            a type, e.g. NonZeroU32, but you can imagine creating your own types with various upheld
+            invariants. This allegedly makes your program more correct. While it initially might
+            seem enticing, I disagree with this philosophy, as the cost far outweights any
+            correctness benefits. The cost is that you can not treat these values as plain data
+            anymore. Zero-copy deserialization is now not possible, because the compiler could have
+            generated code that acted on the "unused" bits, and just the act of creating a value
+            with an invalid bit pattern is now instant UB. Need to deserialize gigabytes of data
+            from disk? If it has attached invariants that the compiler assumes, you can not just
+            reinterpret the memory after you load the file (a common way of cheap deserialization of
+            simpler binary formats), but also have to validate the raw bytes before you cast,
+            otherwise you'll get UB instead of just a correctness bug. This might seem like a minor
+            thing, but in my last game project this came up so often that I eventually had to
+            rewrite multiple systems (entity storage, serialization, undo buffers), until I finally
+            arrived to the conclusion that I should just have gone the plain old data route from the
+            beginning. Fortunately, in JAI, you are not discouraged from plain old data.
           </li>
 
           <li>
-            There is a standard allocator interface. There are not many things that require the
+            There is a standard allocator interface. There are not that many things that require the
             language to define a standard interface, but allocators are one. This is a language
             where it is easy for you to swap allocators per function, module or datastructure.
           </li>
 
           <li>
             "#as using base: Base_Struct;" lets you quickly implement shallow inheritance
-            hierachies. You can store each type in separate storage, so you don't pay the cost for
-            the largest type everywhere, but by passing a pointer, "#as using" lets you treat data
-            homogenously when you only want to look at the common fields. Yes, you can do this in
-            other languages (inheritance in C++, "the Deref trick" in Rust), but it is especially
-            easy to do in JAI. One thing to note is that JAI has neither a massive type system nor
-            inheritance, but captures the useful bits as its own small set of features.
+            hierachies. You can store each type of structure in separate storage, so you don't pay
+            the cost for the largest variant everywhere, but by passing a pointer, "#as using" lets
+            you treat data homogenously when you only want to look at the common fields. Yes, you
+            can do this in other languages (inheritance in C++, "the Deref trick" in Rust), but it
+            is especially easy to do in JAI. One thing to note is that JAI has neither a massive
+            type system nor inheritance, but selectively captures the useful bits as its own small
+            set of features.
           </li>
 
           <li>
-            Overall syntax decisions and terseness. I don't usually talk about syntax, but here's a
-            few things to call out: $T for both declaring and using a polymorphic parameter, not
-            specifying the type name for struct or enum literals, the for loop syntax, and
-            enum_flags.
+            enum_flags!
+          </li>
+
+          <li>
+            Overall syntax decisions and terseness. I don't usually like talking about syntax, but
+            JAI threads the needle between conciseness and understandbility really well. For
+            instance, you can omit the type name in struct or enum literals, if they can be inferred
+            locally, but there is no globally reasoning type inference that would harm
+            understandability. Or you can declare polymorphic parameters simply by adding a dollar
+            sign - there is no need for angle brackets or other unreadable nonsense. Also of note is
+            the for loop syntax, which is really short for the common case.
           </li>
 
           <li>
@@ -140,16 +157,18 @@
           </li>
 
           <li>
-            There's actually a lot of fancy stuff: metaprograming (the Compiler module, #run,
-            #insert, #no_reset, #caller_location), autobakes, macros, etc. I didn't get to use most
-            of it very extensively yet, because I was programming a small game that doesn't need all
-            that power. I can imagine at least the metaprogramming stuff is tremendously useful for
-            building stuff like profilers or code analyzers.
+            Very fast compile times, unless you invoke the LLVM backend (for optimization or platform
+            support), in which case they are still okay.
           </li>
 
           <li>
-            Very fast compile times, unless you invoke the LLVM backend (for optimization or platform
-            support), in which case they are still okay.
+            There is a lot of fancy stuff that I somewhat intentionally relegated to a single bullet
+            point: metaprograming (the Compiler module, #run, #insert, #no_reset, #caller_location),
+            autobakes, macros, etc. This is because I didn't get to use most of it very extensively
+            yet, as I was programming a small game that doesn't need all that power. I can imagine
+            at least the metaprogramming stuff is tremendously useful for building stuff larger
+            things. In Thekla's Sokoban game, this is used to generate entity storage code,
+            serialization, developer commands, profiling, and probably much more I am not aware off.
           </li>
         </ul>
 
@@ -159,7 +178,7 @@
           <li>
             This is on the roadmap, but currently it is only possible to do SIMD for x64 (with the
             built-in inline assembler for X64). There's multiple possible approaches for how Jon and
-            the team can decide to handle this - general SIMD abstraction (already has a prototype)
+            the team can handle this - general SIMD abstraction (already has a prototype)
             vs. platform intrinsics vs. userspace inline assembler - so it might take some time
             before SIMD is possible to do without friction on all platforms.
           </li>
@@ -167,13 +186,14 @@
           <li>
             Context is convenient, but I don't think I got a lot of mileage out of it, and I had to
             pay for it (slightly). I only use the context allocator, temporary storage and context
-            logger, and can't think of anything else I'd like to put there. For the allocator, I
-            could have lived with, or even preferred passing the memory arenas as explicit
-            parameters instead. For logging, the way I use a logger is amenable for it being just a
-            global variable. The downside I did experience is that when another language calls a JAI
-            dynamic library, you have to create an empty context in almost all entrypoints, which is
-            inconvenient. I am considering to not use Context for future projects, perhaps with the
-            exception of overriding the allocator of libraries someone else wrote.
+            logger, and because I like to have things explicit, I can't think of anything else I'd
+            like to put there. For the allocator, I could have lived with, or even preferred passing
+            the memory arenas as explicit parameters instead. For logging, the way I use a logger is
+            amenable for it being just a global variable. The downside I did experience is that when
+            another language calls a JAI dynamic library, you have to create an empty context in
+            almost all entrypoints, which is inconvenient. The major cited usecase for Context is
+            being able to override the allocator for external code, and this is pretty much the only
+            thing I can imagine using it for.
           </li>
 
           <li>
@@ -194,7 +214,8 @@
             Simp, Sound_Player) and make my own. However, there's a few things I can't really
             change, like Temporary_Storage being partially defined in the compiler, or write_string
             being defined in Runtime_Support. I realize that these are probably just my platonic
-            ideals, and in reality I don't mind the more pragmatic approach that Jon took.
+            ideals, and in practice the more pragmatic approach that Jon took didn't cause me any
+            problems.
           </li>
 
           <li>
