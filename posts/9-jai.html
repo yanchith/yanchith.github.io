@@ -84,7 +84,7 @@
           <li>
             Pointers and indices are 64-bit and signed. No size_t/usize that have different sizes
             based on the target CPU. Being signed, you don't need to care about underflow when doing
-            arithmetic. This is a breath of fresh air. Yes, being 64-bit always makes it hard to
+            arithmetic. This is a breath of fresh air. Yes, being 64-bit makes it hard to
             port JAI to non-64-bit platforms, so it is something to consider if you know you are
             going to need that. However, today all of consumer PCs, servers, Macs, consoles, phones
             and tablets, and now even WASM is 64-bit, so you are able to target quite a few
