@@ -1,12 +1,12 @@
 At the moment of writing this (December 2025), the work I am about to talk about is the most focused
 technical work I have done. This was quite the luxury for me, as I usually don't get to dive deep
-for 3 months in a single technical topic, and instead spend my days putting out fires. While I don't
-think I have impostor syndrome anymore (the same way I can't say I am exactly young anymore), I am
-well aware of my limitations. This was me doing reasearch and programming punching well above my
-weight class. It was a lot of fun, and I learned a lot, but I am painfully aware that I could have
-missed an obvious technique that could have made the results better. If, after reading the article,
-you think of anything like that, I'll be delighted to get your email. Now, before we get to the core
-of the problem, here's a little bit of context.
+for 3 months in a single technical topic, and instead each day have to prioritize what is most
+valuable to work on, often times having to leave programming gems to the younger people on the
+team. I am well aware of my limitations, and that this was me doing reasearch and programming
+punching well above my weight class. It was a lot of fun, and I learned a lot, but I am painfully
+aware that I could have missed an obvious technique that could have made the results better. If,
+after reading the article, you think of anything like that, I'll be delighted to get your
+email. Now, before we get to the core of the problem, here's a little bit of context.
 
 In late 2022 and early 2023, a startup company I worked for was about to get funding, and we started
 warming up the programming team. The goal of the company as percieved back then was to procedurally
@@ -19,16 +19,22 @@ we assumed the problem has very high dimensionality, and that even a smartly des
 algorithm will have to do many iterations until it reaches a solution that even looks like it could
 have been designed by a human, let alone a good one.
 
-So the loop is generate stuff, evaluate, generate new stuff, evaluate, and eventually stop after
-either all criteria are satisfied, no significant improvement can be found, or we ran out of
-computational budget. And because the problem is going to be hard, we need to use that budget very
-well. The rest of this post is going to focus on one particular part of the evaluation process. One
-that is computationally demanding: the daylighting evaluation, something that tells you how much
-light does a point on the surface of the interior of a building get, for (usually) tens of thousands
-of points.
+So the loop is generate stuff, evaluate, generate new stuff, evaluate, and so on, until eventually
+we stop after either all criteria are satisfied, no significant improvement can be found, or
+exceeded our computational budget. And because the problem is going to be hard, we need to use that
+budget very well to squeeze in as many iterations as possible. The rest of this post is going to
+focus on one particular part of the evaluation process. One that is computationally demanding: the
+daylight evaluation. For the uninitiated, daylighting is something that tells you how much light
+does a point on the surface of the interior of a building get, usually for tens of thousands of
+points inside many rooms and many buildings. The way it is usually implememnted is ray tracing,
+although there are cheaper and less precise ways that were used last century. Interestingly enough,
+all current solutions depend on a rather old piece of software called Radiance
+(https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
 
-To bridge this closer to game developer audience, the daylighting evaluation is very similar to
-light baking, except we don't care about the light color, only intensity, nor do we need to produce
+To bridge this closer to videogames, the daylighting evaluation is very similar what we call light
+baking: the act of computing precise light simulation for scenes and baking the results into planar
+or spatial textures, so that we have a high quality baseline for static lighting. The differences
+here are that we don't care about the light color, only intensity, nor do we need to produce
 information about which direction the light is coming from - all we need is the light intensity at
 the light probe's location. There's a few boring bits specific to the AEC industry we had to do as
 well, but I am going to purposefully ignore these for the rest of the article, and instead focus on
