@@ -6,7 +6,7 @@ This is a wasm port of a game prototype I created in summer 2025.
 
 <p>
 While the prototype has interesting ideas, it also has serious design problems that are not ironed
-out as of the current vesion.
+out as of the current version.
 </p>
 
 <p>
