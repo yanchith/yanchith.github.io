@@ -68,36 +68,51 @@ maybe reason about the static and dynamic parts of the scene differently.
 The simplest, most flexible, and sometimes even sufficient way to represent the scene is to have
 arrays of various geometric primitives: triangles, spheres, planes, boxes, etc. The act of
 raytracing the scene is then to go over each ray we want to evaluate, and check it against all of
-these arrays. Before addressing the obvious elephant in the room and discarding this approach, I do
-want to go over the benefits. First off, there is (almost) no build step for the scene - you already
-have the arrays of objects, or you can cheaply produce them. This is not going to be true for other
-approaches, and a part of the raytracing cost is going to be the build of the acceleration
-structures. Another good thing here is the resulting code is very easy to both SIMD and
-multithread. The SIMDification can happen over the rays, or over the geometries. Both of these have
-their sets of advantages and disadvantages. When going wide over rays, we have to deal with the
-situation of rays diverging after the first bounce, some potentially hitting the end of their
-journey, which now means we have to somehow deal with dead rays in our wide registers, or accept the
-wasted work they mean. This was the route taken by Casey Muratori in his Handmade Ray miniseries:
-https://guide.handmadehero.org/ray/.
+these arrays, remembering information about the closest hit.
 
-- XXX: Going wide over geometires
-- XXX: fit in cache, because there's no additional data
+(TODO(jt): Pseudocode)
 
+Before addressing the elephant in the room and discarding this approach, I do want to go over some
+of its benefits. First, there is no required build step - you already have the arrays of objects, or
+you can cheaply produce them, in case your representation is not compact. This is not going to be
+true for the more sophisticated designs, where a part of the raytracing cost will be spent on
+building acceleration structures. Another good thing here is the resulting code is very easy to
+SIMD. Going wide can happen over rays, or over geometries, both of these have their advantages and
+disadvantages. When going wide over rays, we have to deal with rays diverging, some potentially
+hitting the end of their journey after less bounces than others, which now means we have dead rays
+in our wide registers, and either have to do something about that, or accept the wasted work. This
+was the route taken by Casey Muratori in his Handmade Ray miniseries:
+https://guide.handmadehero.org/ray/. When going wide over geometry, the main cost is in the memory
+trafic to the CPU. Each geometric primitive is going to be loaded when testing a ray, be evicted by
+subsequent loads [1], only to be loaded again when the next ray is going to need that exact
+memory. The last benefit of the array approach is that because there are no additional
+datastructures necessary, it may just be that for your problem set, the data may be small enough to
+fit in a CPU cache.
 
+[1]: The exact level of eviction (register file, L1, L2, ...) depends on the size of the working set.
 
+Now, the obvious thing is of algorithmic nature. We are visiting each geometry for each ray bounce,
+but most of those rays have no way to reach most geometries. There are too many wasted loads and
+calculations per bounce. There are acceleration structures that help with eliminating impossible
+hits: Bounding Volume Hierachies (BVH), k-d trees, octrees. Which one is best depends on the
+character of your data. We picked the BVH, because it assumes the least, and we didn't want to
+constrain the rest of what we are going to build by choosing an overly picky datastructure [2]. The BVH
+can deal with any, even degenerate data.
 
-- probes, triangles, bounding boxes
+[2]: I believe this was the correct decision even in hindsight, as it allowed us to make the
+daylight evaluator into a standalone product.
 
+XXX: HERE Describe BVH raytracer: bounding boxes and triangles.
+
+However, as we naively enter the land of computer science, we seem to have lost our ability to
+utilize modern hardware, and have to do some thinking to recover it.
 
 ---
 
 TODO(jt): SIMD raytracing on the CPU is something I spend months on, and it is relatively
 interesting. Maybe I should write about, while I still remember?
 
-- context, company start, team warmup
 
-
-- architecture, naive pass
 - Naive triangle intersection -> Moller Trumbore
 - Wide BVH
 - SAH optimization
