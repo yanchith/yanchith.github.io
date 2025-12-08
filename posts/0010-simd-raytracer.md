@@ -61,66 +61,67 @@ Studio (XXX: link)) internally depend on just one piece of ray-tracing software 
 (https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
 
 To bridge this closer to the videogame audience, the daylighting evaluation is very similar to what
-game developers call light baking: the act of computing light simulation for static scenes and
-baking the results into planar (lightmaps) or spatial (light probes) textures, so that we know how a
-scene is lit without having to compute it at runtime. The differences between daylight evaluation
-and light baking come down to how the results are used, not how they are computed. Compared to light
-baking, for daylight evaluation we didn't care about color, only intensity, nor did we need to
-produce information about which direction the light is coming from. We also only simulated perfectly
-diffuse (Lambertian) materials, which made some localized parts of the raytracer simpler. There's
-also a few peripheral bits about interpretting the results that are specific to the AEC industry
-regulations, but I am going to purposefully ignore these, and instead focus on the ray tracer core,
-which I believe looks the same as it would in a light baker.
+game developers call light baking: computing light simulation for static scenes and baking the
+results into planar (lightmaps) or spatial (light probes) textures, so that we know how a scene is
+lit without having to compute it at runtime. The differences between daylight evaluation and light
+baking come down to how the results are used, not how they are computed. Compared to light baking,
+for daylight evaluation we didn't care about color, only intensity, nor did we need to produce
+information about which direction the light is coming from for our light probes. We also only
+simulated perfectly diffuse (Lambertian) materials, which made some localized parts of the raytracer
+simpler. Additionally, there's a few peripheral bits about interpretting the results that are
+specific to the AEC industry regulations, but I am going to purposefully ignore these, and instead
+focus on the ray tracer core, which I believe looks the same as it would in a light baker.
 
 # Baker Architecture, First pass
 
 At a high level, a light baker operates with a geometric description of the scene, and a list of
-raytracing tasks it needs to compute on that scene. Quite often, the list of tasks can change, while
-the scene remains the same, an example of this being the simulation of real time global illumination
-(GI) only happening for the part of the scene that a game will need to render its next
-frame. Another common situation is the scene changing ever so slightly from frame to frame, in which
-case we can maybe reason about the static and dynamic parts of the scene differently.
+raytracing tasks it needs to compute on that scene.
 
-The simplest, most flexible, and sometimes even sufficient way to represent the scene is to have
-arrays of various geometric primitives: triangles, spheres, planes, boxes, etc. The act of
-raytracing the scene is then to go over each ray we want to evaluate and test it against all of
-these arrays, remembering information about the closest hit.
+(XXX: explain ray tracing basics, including bounces)
 
-(XXX: Explaing naive array raytracer)
-(XXX: explain bounces)
+Quite often, the list of tasks can change, while the scene remains the same, an example of this
+being the simulation of real time global illumination (GI) only happening for the part of the scene
+that a game will need to render its next frame. Another common situation is the scene changing ever
+so slightly from frame to frame, in which case we can maybe reason about the static and dynamic
+parts of the scene differently.
 
-(TODO(jt): Pseudocode)
+The simplest, most flexible, and sometimes sufficient way to represent the scene is to have arrays
+of various geometric primitives: triangles, spheres, planes, boxes, etc. Raytracing the scene is
+about going over each ray and testing it against all of these arrays, remembering information about
+the closest hit, so that we know where to start our next bounce.
 
-Before addressing the elephant in the room and discarding this approach, I do want to go over some
-of its benefits. First, there are no acceleration structures - you already have the arrays of
-objects, or you can cheaply produce them, in case your representation is not compact. This is not
-going to be true for the more sophisticated designs, where a part of the raytracing cost will be
-spent on building acceleration structures. Another good thing here is the resulting code is very
-easy to SIMD. Going wide can happen over rays, or over geometries, both of these have their
-advantages and disadvantages. When going wide over rays, problems arise with rays diverging, some
-potentially hitting the end of their journey after less bounces than others, which now means we have
-dead rays in our wide registers, and either have to do something about that, or accept the wasted
-work. This was the route taken by Casey Muratori in his Handmade Ray miniseries:
-https://guide.handmadehero.org/ray/. When going wide over geometry, the main cost is in the memory
-trafic to the CPU. Each geometric primitive is loaded to be tested against a ray, evicted by
-subsequent loads [2], only to be loaded again when the next ray is going to need that exact
-memory [3]. The last benefit of the array approach is that because there are no additional
-datastructures necessary, it may just be that for your problem set, the data may be small enough to
-fit in a CPU cache.
+(XXX: Pseudocode)
 
-[2]: The exact level of eviction (register file, L1, L2, ...) depends on the size of the working set.
+Before addressing the elephant in the room and discarding this approach, I to mention some of its
+benefits. First, there is no need to build acceleration structures - you already have the arrays of
+objects, or you can cheaply produce them, in case your representation does not exactly match what
+the raytracer needs. This is not going to be true for the more sophisticated designs, where a part
+of the raytracing cost will be spent on organizing data to accelerate raytracing. Another good thing
+about these arrays is that the resulting code is very easy to SIMD. Going wide can happen over rays
+or over geometries, both of which have their advantages and disadvantages. When going wide over
+rays, problems arise with rays diverging, some rays potentially hitting the end of their journey
+after less bounces than others, meaning we have dead rays in our wide registers, and either have to
+do something about that, or accept the wasted work. This was the route taken by Casey Muratori in
+his Handmade Ray miniseries: https://guide.handmadehero.org/ray/. When going wide over geometry, the
+main downside is the cost of the memory trafic to the CPU. Each geometric primitive is loaded to be
+tested against a ray, evicted by subsequent loads [2], only to be loaded again when the next ray is
+going to need that exact memory [3].
 
-[3]: The wide-over-rays approach mitigates the cost of this by doing more useful work for the data
-it had to load.
+[2]: The exact level of eviction (register file, L1, L2, ...) depends on (and gets worse with) the
+size of the working set.
 
+[3]: The wide-over-rays approach mitigates the cost of the memory traffic by doing more useful work
+for each cache line it had to load.
 
-Now, the elephant is of algorithmic nature. We are visiting each geometry for each ray bounce, but
-most of those rays have no way to reach most geometries. There are too many wasted loads and
-calculations per bounce. There are acceleration structures that help with eliminating impossible
-hits: Bounding Volume Hierachies (BVH), k-d trees, octrees. Which one is best depends on the
-character of your data. We picked the BVH, because it assumes the least, and we didn't want to
-constrain the rest of what we are going to build by choosing an overly picky datastructure. The
-BVH can deal with any, even degenerate data.
+The elephant is of algorithmic nature. We are visiting each geometry for each ray bounce, but most
+of those rays have no way to reach most geometries. There are too many wasted loads and calculations
+per bounce. To get away from the O(m*n), we use acceleration structures that help with eliminating
+impossible hits, such as Bounding Volume Hierachies (BVH), k-d trees, or Octrees. Choosing between
+them depends on the character of your data. We went with the BVH, because it doesn't have many
+assumptions about its contents and degrades gracefully with bad quality of the input data [4].
+
+[4]: We didn't want to constrain the rest of what we are going to build by choosing an overly picky
+datastructure.
 
 (XXX: Explain BVH)
 
