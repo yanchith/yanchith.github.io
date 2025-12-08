@@ -80,7 +80,7 @@ focus on ray tracing, which I believe looks the same as it would in a light bake
 
 (XXX: Picture)
 
-Ray tracing itself is a process of simulating light. For a point in space, for instance a pixel of a
+Ray tracing is a process of simulating light. For a point in space, for instance a pixel of a
 digital camera, we want to determine the amount and color of light that point receives. We do that
 by simulating paths that light could take through the scene from a light source to reach our
 point. Such path can be either direct, or include one or more bounces from objects in the
@@ -89,19 +89,22 @@ the chip of our digital camera), which rays going from the light sources have a 
 reach, directly or via bounces. We would have to shoot a lot of rays from the light source for them
 to reach our measurement points in sufficient quantities.
 
-Instead, we lean on a property of the universe regarding particles at small scales. If we were shown
+Instead, we lean on a property of the universe regarding small number of particles. If we were shown
 a movie of elementary particles moving through space, sometimes colliding with each other, we would
 have a hard time telling, whether the movie is playing forward or backward. This is because for a
-small number of particles, it is impossible to tell, and they behave exactly the same whether they
+small number of particles, it is impossible to tell. They behave exactly the same whether they
 are moving forward or backward in time [oversimplification], and it is only possible to discern the
 arrow of time once we have a large number of particles and probability enters the picture, pushing
-particles towards states with high entropy. For us, this means that if we have a path between a
+particles towards states with high entropy [probability]. For us, this means that if we have a path between a
 measurement point and a light source, a photon could have taken that exact path both ways, and it
 would have transferred the same amount of energy.
 
 [oversimplification]: This is a huge oversimplification on many levels. For instance photons do not
 necessarily bounce of off all surfaces. Sometimes they are absorbed, and a new photon is emitted,
 etc. However, there is a grain of truth in this model.
+
+[probability]: Particles actually behave the same even in large numbers. The probabilistic behavior
+is emergent.
 
 The implication of this bidirectionality for our simulation is that we can trace rays in reverse:
 from the relatively few points we are interested in towards light sources. The results are going to
