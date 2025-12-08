@@ -1,17 +1,17 @@
 (XXX: Credit JP and DH)
 
 
-This is an article about doing raytracing on the CPU as fast as possible. Because we are focusing on
-making it fast, the article will assume some knowledge of raytracing and the involved math and
-programming. To not leave people behind, I'll try explaining the basics as we go, but to get deeper
-understanding, I wholeheartedly recommend the Raytracing Weekend book series as a primer
+This is an article about raytracing on the CPU as fast as possible. Because we are focusing on fast,
+the article will assume some knowledge of raytracing and the involved math and programming. To not
+leave people behind, I'll try explaining the basics as we go, but to get deeper understanding, I
+wholeheartedly recommend the Raytracing Weekend book series as a primer
 (https://raytracing.github.io/).
 
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
 work is the most focused technical work I have done. This is quite the luxury for me, as I usually
-don't get to do three months of mostly focused work on a single part of the system, and instead have
-to prioritize what is the most valuable thing for me to work on, often times leaving programming
-gems to other people on the team. This was a rare exception.
+don't get to concentracte for three months on a single part of the system, and instead have to
+prioritize what is the most valuable thing for me to work on, often times leaving programming gems
+to other people on the team. This was a rare exception.
 
 Also note that I am a generalist, and thus don't consider myself deeply knowledgeable in computer
 graphics. I am painfully aware that I could have missed an obvious technique that could have made
@@ -20,45 +20,49 @@ thoroughly, I'll be delighted to get your email. Now, before we get to the core 
 here's the last bit of context.
 
 In late 2022 and early 2023, a startup company I worked for was about to get funding, and we started
-warming up the programming team. The goal of the company (as percieved back then) was to build
-software to procedurally generate housing architecture meeting the developer's criteria, such as
-yields, a correct mix of functions and apartment sizes, aesthetics, as well as spatial inputs
-(e.g. build here, but not there). We assumed that to generate that architecture, there would be a
-computer learning process, and as it is with learning processes, they need to get feedback on their
-results that can be fed into the next iteration, gradually improving the results. Generating livable
-architecture is a problem of very high dimensionality - before we even enter the realm of what is
-architecture (and what is good architecture), there's structural engineering, business, regulatory
-and legal criteria that a development project must satisfy. A house is definitely not just any
-"house shaped" geometry. Thus we assumed that even a smartly designed learning algorithm will have
-to do many iterations, getting feedback from a myriad of evaluators (structural, accoustic,
-sunlight/daylight, business, legal) until it reaches a solution that even looks like it could have
-been designed by a human, let alone a good one.
+warming up the programming team. That warmup happened by us building a small part of the system
+first before spinning out wide. A small but important part we knew we needed. The goal of the
+company (as percieved back then) was to build software to procedurally generate housing
+architecture. This housing was supposed to meet the developer's criteria, such as yields, a correct
+mix of functions and apartment sizes, aesthetics, as well as spatial inputs (e.g. build here, but
+not there). We assumed that to generate that architecture, there would be a computer learning
+process, and as it is with learning processes, they need to get feedback on their results that can
+be fed into the next iteration, gradually improving the results. Generating livable architecture is
+a problem of very high dimensionality - before we even enter the realm of what is architecture (and
+what is good architecture), there's structural engineering, business, regulatory and legal criteria
+that a development project must satisfy. A house is definitely not just any "house shaped"
+geometry. Thus we assumed that even a smartly designed learning algorithm will have to do many
+iterations, getting feedback from a myriad of evaluators (structural, accoustic, sunlight/daylight,
+business, legal) until it reaches a solution that even looks like it could have been designed by a
+human, let alone a good one.
 
 (TODO(jt): Include GIF here?)
 
 So we generate stuff, evaluate, generate new stuff, evaluate, and so on, until eventually we stop
 after either all criteria are satisfied, no significant improvement can be found, or we exceeded our
-computational budget. And because the problem is going to be hard, we need to use that budget very
-well to squeeze in as many iterations as possible. At the time we weren't quite sure whether we need
-to be fast so that we have a shot at being quasi-realtime, or to at least finish the computation
+computational budget. And because the problem is going to be hard, we need to use that budget well
+to squeeze in as many iterations as possible. At the time we weren't quite sure whether we need to
+be fast so that we have a shot at being quasi-realtime, or to at least finish the computation
 overnight on a server farm [1].
 
 [1]: The state as of me leaving the company is that for small scenes it took tens of seconds to get
 something, and minutes to get something useful. This degraded to having to do overnight runs for
 larger scenes. The problem is hard.
 
-We are going to focus on one particularly computationally demanding part of the evaluation process:
-the daylight evaluation. For the uninitiated, daylight evaluation is something that tells you how
-much light accumulates at a point on the surface of the interior of a building for some chosen
-stable lighting conditions outside. This is usually done for tens of thousands of points inside many
-rooms and many buildings in a city block, both in the building you plan to build, and in the
+The team warmup focused on one particularly computationally demanding part of the evaluation
+process: the daylight evaluation. For the uninitiated, daylight evaluation is something that tells
+you how much light accumulates at a point on the surface of the interior of a building for some
+chosen stable lighting conditions outside. This is then done for tens of thousands of points inside
+many rooms and many buildings in a city block, both in the buildings you plan to build, and in the
 buildings that surround them.
 
-The way daylight evaluation is usually implememnted is ray tracing, although there are less
-computationally intensive and less precise ways that were used before the wide adoption computers of
-in architecture studios. Interestingly enough, all current solutions (Ladybug (XXX: link), Climate
-Studio (XXX: link)) internally depend on just one piece of ray-tracing software called Radiance
+The way daylight evaluation is usually implememnted is ray tracing [radiosity]. Interestingly
+enough, all current solutions (Ladybug (XXX: link), Climate Studio (XXX: link)) internally depend on
+just one piece of ray-tracing software called Radiance
 (https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
+
+[radiosity]: Although there are less computationally intensive and less precise ways that were used
+before the wide adoption computers of in architecture studios.
 
 To bridge this closer to the videogame audience, the daylighting evaluation is very similar to what
 game developers call light baking: computing light simulation for static scenes and baking the
