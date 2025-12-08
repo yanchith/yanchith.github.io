@@ -72,10 +72,14 @@ simpler. Additionally, there's a few peripheral bits about interpretting the res
 specific to the AEC industry regulations, but I am going to purposefully ignore these, and instead
 focus on the ray tracer core, which I believe looks the same as it would in a light baker.
 
-# Baker Architecture, First pass
+# Baker Architecture, Appetizer
 
 At a high level, a light baker operates with a geometric description of the scene, and a list of
 raytracing tasks it needs to compute on that scene.
+
+(XXX: Picture)
+
+
 
 (XXX: explain ray tracing basics, including bounces)
 
@@ -92,9 +96,9 @@ the closest hit, so that we know where to start our next bounce.
 
 (XXX: Pseudocode)
 
-Before addressing the elephant in the room and discarding this approach, I to mention some of its
-benefits. First, there is no need to build acceleration structures - you already have the arrays of
-objects, or you can cheaply produce them, in case your representation does not exactly match what
+Before addressing the elephant in the room and discarding this approach, I want to mention some of
+its benefits. First, there is no need to build acceleration structures - you already have the arrays
+of objects, or you can cheaply produce them, in case your representation does not exactly match what
 the raytracer needs. This is not going to be true for the more sophisticated designs, where a part
 of the raytracing cost will be spent on organizing data to accelerate raytracing. Another good thing
 about these arrays is that the resulting code is very easy to SIMD. Going wide can happen over rays
@@ -113,15 +117,15 @@ size of the working set.
 [3]: The wide-over-rays approach mitigates the cost of the memory traffic by doing more useful work
 for each cache line it had to load.
 
-The elephant is of algorithmic nature. We are visiting each geometry for each ray bounce, but most
+The elephant is algorithmic in nature. We are visiting each geometry for each ray bounce, but most
 of those rays have no way to reach most geometries. There are too many wasted loads and calculations
-per bounce. To get away from the O(m*n), we use acceleration structures that help with eliminating
-impossible hits, such as Bounding Volume Hierachies (BVH), k-d trees, or Octrees. Choosing between
+per bounce. To get away from the O(m*n), we use acceleration structures to help with eliminating
+impossible hits, such as Bounding Volume Hierachies (BVH), k-d Trees, or Octrees. Choosing between
 them depends on the character of your data. We went with the BVH, because it doesn't have many
 assumptions about its contents and degrades gracefully with bad quality of the input data [4].
 
 [4]: We didn't want to constrain the rest of what we are going to build by choosing an overly picky
-datastructure.
+datastructure. This also helped us productize the daylighting evaluator later.
 
 (XXX: Explain BVH)
 
@@ -130,22 +134,27 @@ XXX: HERE Describe BVH raytracer: bounding boxes and triangles.
 However, as we naively enter the land of computer science, we seem to have lost our ability to
 utilize modern hardware, and have to do some thinking to recover it.
 
----
+# Baker Architecture, Main Course
 
-TODO(jt): SIMD raytracing on the CPU is something I spend months on, and it is relatively
-interesting. Maybe I should write about, while I still remember?
+- Wide BVH: the array of box packs and the array of triangle packs
+- SIMD box intersection
+- SIMD triangle intersection (maybe have to explain moller trumbore first?)
 
+# Dessert
 
 - Naive triangle intersection -> Moller Trumbore
-- Wide BVH
+- Pre-baked sphere rays.
 - SAH optimization
-- SIMD box intersection
-- SIMD Moller-Trumbore
-- wide on bboxes and triangles, not on rays
 - targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
+
+# Future experiments
+
 - Would avx512 help? 16-wide BVH means a lot of memory traffic. How many cache lines do we have to
-  read on average for a sinle ray?
+  read on average for a sinle ray? And how many 512-bit loads?
 - f16?
+- Hiding indices in floats?
+
+# Conclusion
 
 - mention that this is 1000x faster than Climate Studio and Ladybug (for projects that Ladybug can even load)
-- company going under -> opensource the thing?
+- I might re-implement and opensource the generally useful parts
