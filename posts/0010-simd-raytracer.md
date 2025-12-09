@@ -88,6 +88,9 @@ miniscule chance of reaching the points we are interested in, directly or via bo
 to shoot a lot of rays from light sources for them to tricke down to our measurement points in
 sufficient quantities.
 
+(XXX: Carmack says "zillions of billiard balls" to describe how much oversimplification we can do in
+computer graphics)
+
 Instead, we lean on a property of the universe regarding (the absence of) the arrow of time for
 small number of particles. If we were shown a movie of elementary particles moving through space,
 sometimes colliding with each other, we would have a hard time telling, whether the movie is playing
@@ -97,6 +100,8 @@ discern the direction of time once we have a large number of particles and proba
 picture, pushing particles towards states with high entropy [probability]. For us, this means that
 if we have a path between a measurement point and a light source, a photon could have taken that
 exact path both ways.
+
+(XXX: Carmack also says that forward RT is possible, but extremely inefficient)
 
 [oversimplification]: This is a huge oversimplification on many levels. For instance photons do not
 necessarily bounce of off all surfaces. Sometimes they are absorbed, and a new photon is emitted,
