@@ -151,13 +151,13 @@ parametric geometries (e.g. ray and triangle). The solve usually provides us wit
 to intersection point and the normal of the intersected surface.
 
 ```
-raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3) -> Vec3 {
+raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3, bounce_count: s64) -> Vec3 {
     ray_origin    := primary_ray_origin;
     ray_direction := primary_ray_direction;
     ray_color     := Vec3.{ 1, 1, 1 };
 
     for 0..bounce_count - 1 {
-        hit_distance: f32
+        hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
@@ -188,6 +188,11 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
             }
         }
 
+        if hit_distance == FLOAT32_MAX {
+           // The ray didn't hit anything. Return background color.
+           return .{ 0, 0, 0 };
+        }
+
         if hit_material.type == .EMISSIVE {
             ray_color *= hit_material.color;
             return ray_color;
@@ -197,6 +202,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
         }
     }
 
+    // We ran out of bounces and haven't hit a light.
     return .{ 0, 0, 0 };
 }
 
