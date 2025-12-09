@@ -1,6 +1,3 @@
-(XXX: Credit JP and DH)
-
-
 This is an article about raytracing on the CPU as fast as possible. Because we are focusing on fast,
 the article will assume some knowledge of raytracing and the involved math and programming. To not
 leave people behind, I'll try explaining the basics as we go, but to get deeper understanding, I
@@ -138,11 +135,11 @@ denoising algorithms that reconstruct information from noisy pictures.
 
 # Raytracer Architecture, Appetizer
 
-At a high level, a ray tracer operates with a geometric description of the scene and a list of ray
+At a high level, a ray tracer operates on a geometric description of the scene and a list of ray
 tracing tasks it needs to compute on that scene. Both the scene and the list of tasks can change
 from frame to frame, the example of the first being objects moving around on the scene, and of the
 second that the camera can move around, and we perhaps do not need all the raytracing information
-all at once.
+for places the camera does not see.
 
 The simplest, most flexible, and sometimes sufficient way to represent the scene is to have arrays
 of various geometric primitives: triangles, spheres, planes, boxes, etc. Raytracing the scene is
@@ -150,63 +147,84 @@ about going over each ray and testing [intersection] it against all of these arr
 information about the closest hit, so that we know where to start our next bounce.
 
 [intersection]: Testing rays against geometry means solving an intersection equation for the two
-parametric geometries (e.g. ray and triangle). The solve usually provides us with both the
-intersection point, and the distance from the ray origin to the intersection point.
-
-(XXX: Pseudocode)
+parametric geometries (e.g. ray and triangle). The solve usually provides us with both the distance
+to intersection point and the normal of the intersected surface.
 
 ```
-ray_origin:    Vec3;
-ray_direction: Vec3;
+raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3) -> Vec3 {
+    ray_origin    := primary_ray_origin;
+    ray_direction := primary_ray_direction;
+    ray_color     := Vec3.{ 1, 1, 1 };
 
-closest_hit_distance: f32
-closest_hit_normal:   Vec3;
+    for 0..bounce_count - 1 {
+        hit_distance: f32
+        hit_normal:   Vec3;
+        hit_material: Material;
 
-for 0..bounce_count - 1 {
-    for spheres {
-        hit, distance, normal := ray_sphere_intersection(ray_origin, ray_direction, it);
-        if hit && distance < closest_hit_distance {
-            closest_hit_distance = distance;
-            closest_hit_normal   = normal;
+        for sphere: scene.spheres {
+            hit, distance, normal := ray_sphere_intersection(ray_origin, ray_direction, sphere);
+            if hit && distance < hit_distance {
+                hit_distance = distance;
+                hit_normal   = normal;
+                hit_material = sphere.material;
+            }
+        }
+
+        for plane: scene.planes {
+            hit, distance, normal := ray_plane_intersection(ray_origin, ray_direction, plane);
+            if hit && distance < hit_distance {
+                hit_distance = distance;
+                hit_normal   = normal;
+                hit_material = plane.material;
+            }
+        }
+
+        for aabox: scene.aaboxes {
+            hit, distance, normal := ray_aabox_intersection(ray_origin, ray_direction, aabox);
+            if hit && distance < hit_distance {
+                hit_distance = distance;
+                hit_normal   = normal;
+                hit_material = aabox.material;
+            }
+        }
+
+        if hit_material.type == .EMISSIVE {
+            ray_color *= hit_material.color;
+            return ray_color;
+        } else {
+            ray_color = attenuate(ray_color, ray_direction, hit_normal, hit_material);
+            ray_origin, ray_direction = bounce(ray_origin, ray_direction, hit_distance, hit_normal, hit_material);
         }
     }
 
-    for planes {
-        hit, distance, normal := ray_plane_intersection(ray_origin, ray_direction, it);
-        if hit && distance < closest_hit_distance {
-            closest_hit_distance = distance;
-            closest_hit_normal   = normal;
-        }
-    }
-
-    for aaboxes {
-        hit, distance, normal := ray_aabox_intersection(ray_origin, ray_direction, it);
-        if hit && distance < closest_hit_distance {
-            closest_hit_distance = distance;
-            closest_hit_normal   = normal;
-        }
-    }
-
-    // XXX: Cast new ray
+    return .{ 0, 0, 0 };
 }
 
 ```
 
-
 Before addressing the elephant in the room and discarding this approach, I want to mention some of
-its benefits. First, there is no need to build acceleration structures - you already have the arrays
-of objects, or you can cheaply produce them, in case your representation does not exactly match what
-the raytracer needs. This is not going to be true for the more sophisticated designs, where a part
-of the raytracing cost will be spent on organizing data to accelerate raytracing. Another good thing
-about these arrays is that the resulting code is very easy to SIMD. Going wide can happen over rays
-or over geometries, both of which have their advantages and disadvantages. When going wide over
-rays, problems arise with rays diverging, some rays potentially hitting the end of their journey
-after less bounces than others, meaning we have dead rays in our wide registers, and either have to
-do something about that, or accept the wasted work. This was the route taken by Casey Muratori in
-his Handmade Ray miniseries: https://guide.handmadehero.org/ray/. When going wide over geometry, the
-main downside is the cost of the memory trafic to the CPU. Each geometric primitive is loaded to be
-tested against a ray, evicted by subsequent loads [eviction], only to be loaded again when the next
-ray is going to need that exact memory [ray-wide-mitigation].
+its benefits.
+
+First, there is no need to build acceleration structures - you already have the arrays of objects,
+or you can cheaply produce them, in case your representation does not exactly match what the
+raytracer needs. This is not going to be true for the more sophisticated designs, where a part of
+the raytracing cost will be spent on organizing data to accelerate raytracing.
+
+Another good thing about the array approach is that the resulting code is very easy to SIMD. Going
+wide can happen over rays or over geometries, both of which have their respective strengths and
+weaknessess. When going wide over rays, problems arise with rays diverging, some rays in our SIMD
+registers potentially hitting the end of their journey after less bounces than others, meaning we
+end up with potentially dead rays in our wide registers, and either have to do something about that
+[hot-swapping-rays], or accept the wasted work. Going wide over rays was the route taken by Casey
+Muratori in his Handmade Ray miniseries: https://guide.handmadehero.org/ray/. When going wide over
+geometry, the main downside is the cost of the memory trafic to the CPU. Each geometric primitive is
+loaded to be tested against a ray, evicted by subsequent loads [eviction], only to be loaded again
+when the next ray is going to need that exact memory [ray-wide-mitigation].
+
+[hot-swapping-rays]: After we have made a pass over all geometry and we know which rays hit what, we
+could write out the results for finished rays and load in new ones into our wide registers. This
+would incur some management and complexity overhead, but would also mean we utilize SIMD to the
+fullest right until the very end where we run out of rays.
 
 [eviction]: The exact level of eviction (register file, L1, L2, ...) depends on (and gets worse
 with) the size of the working set.
@@ -214,12 +232,12 @@ with) the size of the working set.
 [ray-wide-mitigation]: The wide-over-rays approach mitigates the cost of the memory traffic by doing
 more useful work for each cache line it had to load.
 
-The elephant is algorithmic in nature. We are visiting each geometry for each ray bounce, but most
-of those rays have no way to reach most geometries. There are too many wasted loads and calculations
-per bounce. To get away from the O(m*n), we use acceleration structures to help with eliminating
-impossible hits, such as Bounding Volume Hierachies (BVH), k-d Trees, or Octrees. Choosing between
-them depends on the character of your data. We went with the BVH, because it doesn't have many
-assumptions about its contents and degrades gracefully with bad quality of the input data
+Now back to the elephant, which is algorithmic in nature. We are visiting each geometry for each ray
+bounce, but most of those rays have no way to reach most geometries. This incurs many wasted loads
+and calculations per bounce. To get away from the O(m*n), we use acceleration structures to help
+with eliminating impossible hits, such as Bounding Volume Hierachies (BVH) or Octrees. Choosing a
+datastructure depends on the character of your data. We went with the BVH, because it doesn't have
+many assumptions about its contents and degrades gracefully with bad quality of the input data
 [bvh-generality].
 
 [bvh-generality]: We didn't want to constrain the rest of what we are going to build by choosing an
@@ -242,7 +260,7 @@ utilize modern hardware, and have to do some thinking to recover it.
 
 - Naive triangle intersection -> Moller Trumbore
 - Pre-baked sphere rays.
-- SAH optimization
+- SAH optimization (Credit DH)
 - targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
 
 # Future experiments
@@ -251,6 +269,7 @@ utilize modern hardware, and have to do some thinking to recover it.
   read on average for a sinle ray? And how many 512-bit loads?
 - f16?
 - Hiding indices in floats?
+- Going wide over rays AND having a BVH... if we can do a smart gather.
 
 # Conclusion
 
