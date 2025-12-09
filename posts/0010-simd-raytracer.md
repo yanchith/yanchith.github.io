@@ -258,15 +258,17 @@ the bounding volumes of two sibling tree nodes. Two sibling nodes can very well 
 bounding volumes, both of which are contained by the parent's bounding volume. This means that
 traversing a BVH can take multiple paths at the same time, as they aren't mutually exclusive.
 
+(XXX: Picture)
+
 Ray tracing against a BVH boils down to a tree traversal. We test a ray against a node's bounding
-volume first, and only then against its contents. If we don't hit the bounding volume, there is no
-point in continueing down this tree path. Once we get to a leaf node, we test our ray against the
-node's geometry, keeping track of the closest hit distance and normal, as we would in unaccelerated
-array approach above. The closest hit distance can help us eliminate entire branches of the tree,
-because we can skip them not just when we miss the bounding volume, but also if the distance to the
-bounding volume is greater than are recorded closest hit distance. For this reason (and others), it
-is worthwhile to traverse the tree depth first, so that we record our closest hit against geometry
-sooner.
+volume first, and only after that hits we test against its contents. If we don't hit the bounding
+volume, there is no point in continuing down this way. Once we get to a leaf node, we test our ray
+against the node's geometry, keeping track of the closest hit distance and normal, as we would in
+unaccelerated array approach above. Once we know it, the closest hit distance can help us eliminate
+entire branches of the tree, because we can skip them not just when we miss the bounding volume, but
+also if the distance to the bounding volume is greater than are recorded closest hit distance. For
+this reason (and others), it is worthwhile to traverse the tree depth first, so that we record our
+closest hit against geometry sooner.
 
 Our raytracer's bounding volumes were axis-aligned boxes, and scene geometries were triangles.
 
