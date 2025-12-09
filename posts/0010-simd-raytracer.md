@@ -138,19 +138,60 @@ denoising algorithms that reconstruct information from noisy pictures.
 
 # Raytracer Architecture, Appetizer
 
-At a high level, a light baker operates with a geometric description of the scene, and a list of
-raytracing tasks it needs to compute on that scene. Quite often, the list of raytracing tasks can
-change, while the scene remains the same, an example of this being the simulation of real time
-global illumination (GI) only happening for the part of the scene that a game will need to render
-its next frame. Another common situation is the scene changing ever so slightly from frame to frame,
-in which case we can maybe reason about the static and dynamic parts of the scene differently.
+At a high level, a ray tracer operates with a geometric description of the scene and a list of ray
+tracing tasks it needs to compute on that scene. Both the scene and the list of tasks can change
+from frame to frame, the example of the first being objects moving around on the scene, and of the
+second that the camera can move around, and we perhaps do not need all the raytracing information
+all at once.
 
 The simplest, most flexible, and sometimes sufficient way to represent the scene is to have arrays
 of various geometric primitives: triangles, spheres, planes, boxes, etc. Raytracing the scene is
-about going over each ray and testing it against all of these arrays, remembering information about
-the closest hit, so that we know where to start our next bounce.
+about going over each ray and testing [intersection] it against all of these arrays, remembering
+information about the closest hit, so that we know where to start our next bounce.
+
+[intersection]: Testing rays against geometry means solving an intersection equation for the two
+parametric geometries (e.g. ray and triangle). The solve usually provides us with both the
+intersection point, and the distance from the ray origin to the intersection point.
 
 (XXX: Pseudocode)
+
+```
+ray_origin:    Vec3;
+ray_direction: Vec3;
+
+closest_hit_distance: f32
+closest_hit_normal:   Vec3;
+
+for 0..bounce_count - 1 {
+    for spheres {
+        hit, distance, normal := ray_sphere_intersection(ray_origin, ray_direction, it);
+        if hit && distance < closest_hit_distance {
+            closest_hit_distance = distance;
+            closest_hit_normal   = normal;
+        }
+    }
+
+    for planes {
+        hit, distance, normal := ray_plane_intersection(ray_origin, ray_direction, it);
+        if hit && distance < closest_hit_distance {
+            closest_hit_distance = distance;
+            closest_hit_normal   = normal;
+        }
+    }
+
+    for aaboxes {
+        hit, distance, normal := ray_aabox_intersection(ray_origin, ray_direction, it);
+        if hit && distance < closest_hit_distance {
+            closest_hit_distance = distance;
+            closest_hit_normal   = normal;
+        }
+    }
+
+    // XXX: Cast new ray
+}
+
+```
+
 
 Before addressing the elephant in the room and discarding this approach, I want to mention some of
 its benefits. First, there is no need to build acceleration structures - you already have the arrays
