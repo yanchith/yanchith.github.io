@@ -56,9 +56,9 @@ many rooms and many buildings in a city block, both in the buildings you plan to
 already existing buildings that surround them.
 
 The way daylight evaluation is usually implememnted is raytracing [radiosity]. Interestingly enough,
-all current software solutions (Ladybug (XXX: link), Climate Studio (XXX: link)) internally depend
-on just one raytracing package called Radiance
-(https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
+all current software solutions (Ladybug: https://www.ladybug.tools/ladybug.html, Climate Studio:
+https://www.solemma.com/climatestudio) internally depend on just one raytracing package called
+Radiance (https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
 
 [radiosity]: Although there are analytical ways used for simple geometries that were used before the
 wide adoption computers of in architecture studios.
@@ -89,9 +89,6 @@ miniscule chance of reaching the points we are interested in, directly or via bo
 to shoot a lot of rays from light sources for them to tricke down to our measurement points in
 sufficient quantities.
 
-(XXX: Carmack says "zillions of billiard balls" to describe how much oversimplification we can do in
-computer graphics)
-
 Instead, we lean on a property of the universe regarding (the absence of) the arrow of time for the
 behavior of particles. If we were shown a movie of elementary particles moving through space,
 sometimes colliding with each other, we would have a hard time telling whether the movie is playing
@@ -102,14 +99,14 @@ picture, pushing particles towards states with high entropy [probability]. For u
 if we have a path between a measurement point and a light source, a photon could have taken that
 exact path both in both directions.
 
-(XXX: Carmack also says that forward RT is possible, but extremely inefficient)
+[oversimplification]: This is an oversimplification on many levels. Photons do not necessarily
+bounce of off all surfaces. Sometimes they are absorbed, and a new photon is emitted, etc. However,
+there is a grain of truth in this model, and imagining photons as "zillions of billiard balls"
+bouncing around does have value.
 
-[oversimplification]: This is a huge oversimplification on many levels. For instance photons do not
-necessarily bounce of off all surfaces. Sometimes they are absorbed, and a new photon is emitted,
-etc. However, there is a grain of truth in this model.
-
-[probability]: Particles actually behave the same even in large numbers. The probabilistic behavior
-is emergent.
+[probability]: The fundamental laws for particles do not change when there's many of them. The
+probabilistic behavior emerges from our inability to keep track large data, leading us to reason
+about macrostates and entropy instead.
 
 The implication of this bidirectionality for our simulation is that we can trace rays in reverse:
 from the relatively few points we are interested in towards light sources. For infinite number of
@@ -317,6 +314,7 @@ to do some thinking to recover it.
 - f16?
 - Hiding indices in floats?
 - Going wide over rays AND having a BVH... if we can do a smart gather.
+- what about metropolis, monte carlo estimation, etc...
 
 # Conclusion
 
