@@ -3,14 +3,15 @@ focusing on fast, the article will assume some knowledge of raytracing and the i
 programming. To not leave people behind, I'll try explaining some basics as we go, but to get deeper
 understanding, I wholeheartedly recommend the Raytracing Weekend book series as a primer
 (https://raytracing.github.io/). The second topic for which there are some knowledge assumptions is
-SIMD. Here, my long-form recommendation for the patient is Casey Muratori's Handmade Hero
+SIMD. Here, my long-form recommendation for the patient viewer is Casey Muratori's Handmade Hero
 (https://guide.handmadehero.org/) and Computer Enhance (https://computerenhance.com) series, which
 both touch on way more topics than just SIMD.
 
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
-work is the most focused technical work I have done. This is quite the luxury for me, as I usually
-don't get to concentracte for three months on a single part of the system, and instead have to
-prioritize what is the most valuable thing for me to work on. This was a happy and rare exception.
+work is the most focused technical work I have done. This was quite the luxury for me, as I usually
+don't get to concentracte for weeks months on doing single part of the system well, and instead have
+to prioritize what is the most valuable thing for me to work on. This was a happy and rare
+exception.
 
 Also note that I am a generalist, and thus don't consider myself deeply knowledgeable in computer
 graphics. I am painfully aware that I could have missed an obvious technique that could have made
@@ -21,7 +22,7 @@ here's the last bit of context.
 In late 2022 and early 2023, a startup company I worked for was about to get funding, and we started
 warming up the programming team, which basically meant building a small part of the system together
 first before spinning out wide. A small but important part we knew we needed. The goal of the
-company (as percieved back then) was to build software to procedurally generate housing
+company as percieved back then was to build software to procedurally generate housing
 architecture. This housing was supposed to meet the developer's criteria, such as yields, a correct
 mix of functions and apartment sizes, aesthetics, as well as spatial inputs (e.g. build here, but
 not there). We assumed that to generate that architecture, there would be a computer learning
@@ -43,9 +44,9 @@ to squeeze in as many iterations as possible. At the time we weren't quite sure 
 be fast so that we have a shot at being quasi-realtime, or to at least finish the computation
 overnight on a server farm [1].
 
-[1]: The state as of me leaving the company is that for small scenes it took tens of seconds to get
+[1]: The state as of me leaving the company is that for small scenes it took seconds to get
 something, and minutes to get something useful. This degraded to having to do overnight runs for
-larger scenes. The problem is hard.
+large and huge scenes. The problem is hard.
 
 The team warmup focused on one particularly computationally demanding part of the evaluation
 process: the daylight evaluation. For the uninitiated, daylight evaluation is something that tells
@@ -54,13 +55,13 @@ chosen stable lighting conditions outside. This is then done for tens of thousan
 many rooms and many buildings in a city block, both in the buildings you plan to build, and in the
 already existing buildings that surround them.
 
-The way daylight evaluation is usually implememnted is raytracing [radiosity]. Interestingly
-enough, all current solutions (Ladybug (XXX: link), Climate Studio (XXX: link)) internally depend on
-just one piece of raytracing software called Radiance
+The way daylight evaluation is usually implememnted is raytracing [radiosity]. Interestingly enough,
+all current software solutions (Ladybug (XXX: link), Climate Studio (XXX: link)) internally depend
+on just one raytracing package called Radiance
 (https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
 
-[radiosity]: Although there are less computationally intensive and less precise ways that were used
-before the wide adoption computers of in architecture studios.
+[radiosity]: Although there are analytical ways used for simple geometries that were used before the
+wide adoption computers of in architecture studios.
 
 To bridge this closer to the videogame audience, the daylighting evaluation is very similar to what
 game developers call light baking: computing light simulation for static scenes and baking the
@@ -68,19 +69,19 @@ results into planar (lightmaps) or spatial (light probes) textures, so that we k
 lit without having to compute it at runtime. The differences between daylight evaluation and light
 baking come down to how the results are used, not how they are computed. Compared to light baking,
 daylight evaluation doesn't care about color, only intensity, nor does it need to produce
-information about which direction the light is coming from for the light probes. We also only need
-to simulate perfectly diffuse (Lambertian) materials, which made some parts of the raytracer
-simpler. Additionally, there's a few peripheral bits about interpretting the results that are
-specific to the AEC industry regulations that I am going to purposefully ignore, and instead focus
-on raytracing, which I believe looks the same as it would in a light baker.
+information about which direction the light is coming from for the light probes. Daylighting also
+only needs to simulate perfectly diffuse (Lambertian) materials, which made some parts of the
+raytracer simpler. Additionally, there's a few peripheral bits about interpretting the results that
+are specific to the AEC industry regulations that I am going to purposefully ignore, and instead
+focus on raytracing, which I believe looks the same as it would in a light baker.
 
 # Ray Tracing
 
 (XXX: Picture)
 
 Ray tracing is a process of simulating light. For a point in space, for instance a pixel of a
-digital camera, we want to determine the amount and color of light that point receives. We do that
-by simulating paths that light could take through the scene from a light source to reach our
+digital camera, we want to determine the intensity and color of light that point receives. We do
+that by simulating paths that light could take through the scene from a light source to reach our
 point. Such paths can be either direct, or include one or more bounces from objects in the
 scene. However, we are often interested in light reaching just a few select points in space, like
 the chip of our digital camera. Compared to all the places the light can go, light rays have only a
@@ -91,15 +92,15 @@ sufficient quantities.
 (XXX: Carmack says "zillions of billiard balls" to describe how much oversimplification we can do in
 computer graphics)
 
-Instead, we lean on a property of the universe regarding (the absence of) the arrow of time for
-small number of particles. If we were shown a movie of elementary particles moving through space,
-sometimes colliding with each other, we would have a hard time telling, whether the movie is playing
+Instead, we lean on a property of the universe regarding (the absence of) the arrow of time for the
+behavior of particles. If we were shown a movie of elementary particles moving through space,
+sometimes colliding with each other, we would have a hard time telling whether the movie is playing
 forward or backward [oversimplification]. This is because it is impossible to tell - they behave
 exactly the same whether they are moving forward or backward in time, and it is only possible to
 discern the direction of time once we have a large number of particles and probability enters the
 picture, pushing particles towards states with high entropy [probability]. For us, this means that
 if we have a path between a measurement point and a light source, a photon could have taken that
-exact path both ways.
+exact path both in both directions.
 
 (XXX: Carmack also says that forward RT is possible, but extremely inefficient)
 
@@ -113,10 +114,11 @@ is emergent.
 The implication of this bidirectionality for our simulation is that we can trace rays in reverse:
 from the relatively few points we are interested in towards light sources. For infinite number of
 rays the results would have been the same, but with our finite limitations, we have higher chance of
-sucessfully completing the path between the light source and the camera going in reverse. With both
-forward and reverse raytracing, we keep track of how much energy we loose with each bounce. Because
-these energy losses (also called attenuation) are multiplicative, and multiplication is commutative,
-this works out the same regardless of the direction we trace the ray in.
+sucessfully completing the path between the light source and the camera going in reverse (XXX:
+because the light sources can be big). With both forward and reverse raytracing, we keep track of
+how much energy we loose with each bounce. Because these energy losses (also called attenuation) are
+multiplicative, and multiplication is commutative, this works out the same regardless of the
+direction we trace the ray in.
 
 So we shoot rays from our measurement points, hoping they eventually reach sources of light. These
 rays go in a straight line until they hit something. Depending on what was hit, various things
@@ -137,7 +139,7 @@ always well lit, it may take shooting a lot of rays for us to form a coherent pi
 scene looks like. Low light scenes are prone to noise, when various neighboring pixels in the camera
 collect dramatically different values of light. As the number of rays increases to infinity, the
 noise disappears, but because a large number of rays is not always practical, we often employ
-denoising algorithms that reconstruct information from noisy pictures.
+denoising algorithms that reconstruct information from noisy pictures. (XXX: cut part about noise?)
 
 # Raytracer Architecture, Appetizer
 
@@ -153,7 +155,7 @@ ray and testing [intersection] it against all of these arrays, remembering infor
 closest hit, so that we know where to start our next bounce.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
-geometries (e.g. ray and triangle). The solve usually provides us with both the distance to
+geometries, e.g. ray and triangle. The solve usually provides us with both the distance to
 intersection point and the normal of the intersected surface, both of which we need to procede.
 
 ```
@@ -218,7 +220,7 @@ Before addressing the elephant in the room and discarding this approach, I want 
 its benefits.
 
 Firstly, there is no need to build acceleration structures - you already have the arrays of objects,
-or you can cheaply produce them, in case your representation does not exactly match what the
+or you can cheaply produce them, in case your representation does not already match what the
 raytracer needs. This is not going to be true for the more sophisticated designs, where a part of
 the raytracing cost will be spent on organizing data to accelerate raytracing.
 
@@ -261,7 +263,8 @@ either links to child nodes, or, in case of leaf nodes actual scene geometries. 
 bounding volume only has a relation to the node's contents, but there is no direct relation between
 the bounding volumes of two sibling tree nodes. Two sibling nodes can very well have overlapping
 bounding volumes, both of which are contained by the parent's bounding volume. This means that
-traversing a BVH can take multiple paths at the same time, as they aren't mutually exclusive.
+traversing a BVH can take multiple paths at the same time, as they aren't necessarilly mutually
+exclusive.
 
 (XXX: Picture)
 
@@ -272,10 +275,11 @@ against the node's geometry, keeping track of the closest hit distance and norma
 unaccelerated array approach above. Once we know it, the closest hit distance can help us eliminate
 entire branches of the tree, because we can skip them not just when we miss the bounding volume, but
 also if the distance to the bounding volume is greater than are recorded closest hit distance. For
-this reason (and others), it is worthwhile to traverse the tree depth first, so that we record our
+this reason and others, it is worthwhile to traverse the tree depth first, so that we record our
 closest hit against geometry sooner.
 
-Our raytracer's bounding volumes were axis-aligned boxes, and scene geometries were triangles.
+Now let's go over our initial, naive implementation. The raytracer's bounding volumes were
+axis-aligned boxes, and scene geometries were triangles.
 
 (XXX: Explain basic BVH build)
 
@@ -285,12 +289,12 @@ The intersection math for the boxes was the "slab" method.
 
 Our initial prototype did triangle intersections as plane intersections combined three containment
 tests (for each triangle arm), but we eventually moved to Möller–Trumbore, which produces the same
-answer faster.
+answer faster by having less instructions and shorter dependency chains.
 
 (XXX: Pseudocode)
 
 Now our speed can scale logarithmically with the size of the scene. However, as we naively entered
-the land of computer science, we seem to have lost our ability to utilize modern hardware, and have
+the land of computer science, we have temporarily lost our ability to utilize modern hardware, and have
 to do some thinking to recover it.
 
 # Raytracer Architecture, Main Course
