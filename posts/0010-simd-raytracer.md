@@ -108,14 +108,18 @@ bouncing around does have value.
 probabilistic behavior emerges from our inability to keep track large data, leading us to reason
 about macrostates and entropy instead.
 
-The implication of this bidirectionality for our simulation is that we can trace rays in reverse:
-from the relatively few points we are interested in towards light sources. For infinite number of
-rays the results would have been the same, but with our finite limitations, we have higher chance of
-sucessfully completing the path between the light source and the camera going in reverse (XXX:
-because the light sources can be big). With both forward and reverse raytracing, we keep track of
-how much energy we loose with each bounce. Because these energy losses (also called attenuation) are
-multiplicative, and multiplication is commutative, this works out the same regardless of the
-direction we trace the ray in.
+The implication of bidirectionality for our simulation is that we can trace rays in reverse: from
+the relatively few points we are interested in towards light sources. For infinite number of rays
+the results would have been the same, but with our finite limitations, we have higher chance of
+sucessfully completing the path between the light source and the camera going in backwards
+[big-lights]. With both forward and reverse raytracing, we keep track of how much energy we loose
+with each bounce. Because these energy losses (also called attenuation) are multiplicative, and
+multiplication is commutative, this works out the same regardless of the direction we trace the ray
+in.
+
+[big-lights]: Because light sources are usually bigger than our camera, and even if the ray escapes
+the scene, we can sample a background skybox or similar to get some ambient value of
+light. Actually, in the raytracer we built the skybox was the only source of light.
 
 So we shoot rays from our measurement points, hoping they eventually reach sources of light. These
 rays go in a straight line until they hit something. Depending on what was hit, various things
@@ -282,7 +286,7 @@ axis-aligned boxes, and scene geometries were triangles.
 
 The intersection math for the boxes was the "slab" method.
 
-(XXX: Pseudocode)
+(XXX: Pseudocode, https://tavianator.com/2022/ray_box_boundary.html)
 
 Our initial prototype did triangle intersections as plane intersections combined three containment
 tests (for each triangle arm), but we eventually moved to Möller–Trumbore, which produces the same
