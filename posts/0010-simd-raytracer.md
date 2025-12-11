@@ -359,8 +359,10 @@ all these triangles. We build the tree by recursively splitting the node:
 
 We stop recursing, if the number of triangles in our current node is below a threshold, say 8.
 
-(XXX: bvh build psudocode)
+(XXX: bvh build pseudocode)
 
+
+(XXX: Compile and run pseudocode...)
 ```
 Triangle :: struct {
     v0: Vec3;
@@ -373,32 +375,102 @@ AABox :: struct {
     max: Vec3;
 }
 
-Node_Type :: enum {
-    UNINITIALIZED :: 0;
-
-    NODE :: 1;
-    LEAF :: 2;
-}
-
 Node :: struct {
-    left_type:  Node_Type; // If .UNINITIALED, index is invalid.
-    left_index: s64;
-    right_type: Node_Type; // If .UNINITIALED, index is invalid.
-    right_index: s64;
-}
+    type: Node_Type;
+    data: Node_Data;
 
-Leaf :: struct {
-    triangle_count: s64;
-    triangles: [LEAF_TRIANGLE_COUNT] Triangle;
+    // This union is a little wasteful, but helps keep the pseudocode concise.
+    // In reality, we want to store inner nodes and leaves in separate arrays.
+    Node_Data :: union {
+        inner: Node_Inner;
+        leaf:  Node_Leaf;
+    }
+
+    Node_Type :: enum {
+        UNINITIALIZED :: 0;
+
+        INNER :: 1;
+        LEAF  :: 2;
+    }
+
+    Node_Inner :: struct {
+        aabox: AABox;
+        left: s64;
+        right: s64;
+    }
+
+    Node_Leaf :: struct {
+        triangle_count: s64;
+        triangles: [LEAF_TRIANGLE_COUNT] Triangle;
+    }
 }
 
 BVH :: struct {
-    nodes:  [..] Node;
-    leaves: [..] Leaf;
+    nodes: [..] Node;
 }
 
-build_bvh :: (triangles: [] Triangle) -> BVH {
+make_bvh :: (triangles: [] Triangle) -> BVH {
+    bvh: BVH;
+    array_add(*bvh.nodes);
 
+    Frame :: struct {
+        node_index: s64;
+        triangles: [] Triangle;
+    }
+
+    stack: [..] s64;
+    array_add(*stack, .{ 0, triangles });
+
+    while stack.count {
+        frame := pop(*stack);
+
+        left_index, left_triangles, right_index, right_triangles := split_or_finalize(frame.node_index, frame.triangles, *bvh);
+
+        if left_index >= 0   array_add(*stack, .{ left_index, left_triangles });
+        if right_index >= 0  array_add(*stack, .{ right_index, right_triangles });
+    }
+}
+
+split_or_finalize :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> left: s64, left_triangles: [] Triangle, right: s64, right_triangles: [] Triangle {
+    if triangles.count <= LEAF_TRIANGLE_COUNT  {
+        node := bvh.nodes[node_index];
+        node.type = .LEAF;
+        node.leaf.triangle_count = triangles.count;
+        array_view_copy(*node.leaf.triangles, triangles, triangles.count);
+
+        return -1, .[], -1, .[];
+    } else {
+        left := bvh.nodes.count;
+        right := bvh.nodes.count + 1;
+
+        array_add(*bvh.nodes);
+        array_add(*bvh.nodes);
+
+        node := bvh.nodes[node_index];
+        node.type = .INNER;
+        node.inner.aabox = aabox_from_triangles(triangles);
+        node.inner.left = left;
+        node.inner.right = right;
+
+        // We compare one of the triangle points, but we could also compare centroids.
+        comparator_x :: (a: Triangle, b: Triangle) -> float32 { return a.v0.x - b.v0.x; }
+        comparator_y :: (a: Triangle, b: Triangle) -> float32 { return a.v0.y - b.v0.y; }
+        comparator_z :: (a: Triangle, b: Triangle) -> float32 { return a.v0.z - b.v0.z; }
+
+        // XXX: Pick based on largest dimension
+        comparator := comparator_x;
+
+        quick_sort(triangles, comparator);
+
+        left_triangles = triangles;
+        left_triangles.count /= 2;
+
+        right_triangles = triangles;
+        right_triangles.data += left_triangles.count;
+        right_triangles.count -= left_triangles.count;
+
+        return left, left_triangles, right, right_triangles;
+    }
 }
 
 ```
