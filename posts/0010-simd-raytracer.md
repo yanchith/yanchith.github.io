@@ -161,22 +161,64 @@ tracing tasks it needs to compute on that scene. These do not necessarilly chang
 from frame to frame, and many real-time raytracers reason about that, but we won't.
 
 The simplest and most flexible way to represent the scene is to have arrays of various geometric
-primitives: triangles, spheres, planes, boxes... Raytracing the scene is about going over each
-ray and testing [intersection] it against all of these arrays, remembering information about the
-closest hit, so that we know where to start our next bounce.
+primitives: triangles, spheres, planes, boxes... Raytracing the scene is about going over each ray
+and testing [intersection] it against all of these arrays, remembering information about the closest
+hit, so that we know where to start our next bounce. In fact, this is so simple that almost all of
+it fits in pseudocode.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
 geometries, e.g. ray and triangle. The solve provides us with both the distance to the intersection
 point and the normal of the intersected surface, both of which we need to procede.
 
 ```
+Sphere :: struct {
+    position: Vec3;
+    radius:   float32;
+}
+
+Plane :: struct {
+    normal: Vec3;
+    d: float32;
+}
+
+AABox :: struct {
+    min: Vec3;
+    max: Vec3;
+}
+
+Material_Type :: enum u32 {
+    LIGHT_SOURCE :: 0;
+    LAMBERTIAN   :: 1;
+    // ...
+}
+
+Material :: struct {
+    type: Material_Type;
+    p0: float32;
+    p1: float32;
+    p2: float32;
+
+    #overlay (p0) color: Vec3;
+}
+
+Scene :: struct {
+    spheres:          [..] Sphere;
+    sphere_materials: [..] Material;
+
+    planes:          [..] Plane;
+    plane_materials: [..] Material;
+
+    aaboxes:         [..] AABox;
+    aabox_materials: [..] Material;
+}
+
 raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
     ray_origin    := primary_ray_origin;
     ray_direction := primary_ray_direction;
     ray_color     := Vec3.{ 1, 1, 1 };
 
     for 0..max_bounces - 1 {
-        hit_distance: f32 = FLOAT32_MAX;
+        hit_distance: float32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
@@ -185,7 +227,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
             if hit && distance < hit_distance {
                 hit_distance = distance;
                 hit_normal   = normal;
-                hit_material = sphere.material;
+                hit_material = sphere_materials[it_index];
             }
         }
 
@@ -194,7 +236,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
             if hit && distance < hit_distance {
                 hit_distance = distance;
                 hit_normal   = normal;
-                hit_material = plane.material;
+                hit_material = plane_materials[it_index];
             }
         }
 
@@ -203,13 +245,14 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
             if hit && distance < hit_distance {
                 hit_distance = distance;
                 hit_normal   = normal;
-                hit_material = aabox.material;
+                hit_material = aabox_materials[it_index];
             }
         }
 
         if hit_distance == FLOAT32_MAX {
-           // The ray didn't hit anything. Return background color. We could sample a skybox here.
-           return .{ 0, 0, 0 };
+           // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
+           ray_color *= .{ 0.2, 0.1, 0.4 };
+           return ray_color;
         }
 
         if hit_material.type == .LIGHT_SOURCE {
@@ -225,6 +268,14 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
     return .{ 0, 0, 0 };
 }
 
+// We'll define some of these later.
+ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+
+// We won't really be defining these later, but let's pretend they exist.
+attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material);
+bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material);
 ```
 
 Before addressing the elephant in the room and moving on from this approach, I want to mention some
@@ -306,9 +357,52 @@ all these triangles. We build the tree by recursively splitting the node:
 - Link the created BVH nodes to the parent
 - Recurse to both child nodes
 
-We stop the recursion, if the number of triangles in our current node is below a threshold, say 8.
+We stop recursing, if the number of triangles in our current node is below a threshold, say 8.
 
-(XXX: HERE Explain basic BVH build)
+(XXX: bvh build psudocode)
+
+```
+Triangle :: struct {
+    v0: Vec3;
+    v1: Vec3;
+    V2: Vec3;
+}
+
+AABox :: struct {
+    min: Vec3;
+    max: Vec3;
+}
+
+Node_Type :: enum {
+    UNINITIALIZED :: 0;
+
+    NODE :: 1;
+    LEAF :: 2;
+}
+
+Node :: struct {
+    left_type:  Node_Type; // If .UNINITIALED, index is invalid.
+    left_index: s64;
+    right_type: Node_Type; // If .UNINITIALED, index is invalid.
+    right_index: s64;
+}
+
+Leaf :: struct {
+    triangle_count: s64;
+    triangles: [LEAF_TRIANGLE_COUNT] Triangle;
+}
+
+BVH :: struct {
+    nodes:  [..] Node;
+    leaves: [..] Leaf;
+}
+
+build_bvh :: (triangles: [] Triangle) -> BVH {
+
+}
+
+```
+
 
 Now let's go over our initial, naive implementation. The raytracer's bounding volumes were
 axis-aligned boxes, and scene geometries were triangles.
