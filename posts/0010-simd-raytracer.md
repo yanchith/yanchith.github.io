@@ -288,10 +288,31 @@ closest hit distance. For this reason (and others), it is worthwhile to traverse
 first, so that we record our closest hit as soon as possible, eliminating further tests down the
 line.
 
+Building a BVH is a little more complicated than using it. I mentioned previously that in a BVH, a
+node's bounding volume contains the objects of that node, including child nodes, if any, but
+otherwise has no relation to bounding volumes of sibling nodes. This makes it a little easier to
+build a BVH. For a good BVH, we'd also like to minimize the volume each node takes, and make
+bounding volumes of sibling nodes overlap less. We'll work on building a good BVH later. Starting
+with an array of geometries (say triangles), we organize them into a tree, such that the bounding
+volume of a node (say axis-aligned bounding box) contains all down-tree triangles and bounding
+boxes.
+
+We start with a single BVH node that contains all triangles, and has a bounding box that contains
+all these triangles. We build the tree by recursively splitting the node:
+
+- Pick a direction
+- Sort triangles along the picked direction
+- Split the array in the middle, giving each part to a newly created BVH node
+- Link the created BVH nodes to the parent
+- Recurse to both child nodes
+
+We stop the recursion, if the number of triangles in our current node is below a threshold, say 8.
+
+(XXX: HERE Explain basic BVH build)
+
 Now let's go over our initial, naive implementation. The raytracer's bounding volumes were
 axis-aligned boxes, and scene geometries were triangles.
 
-(XXX: HERE Explain basic BVH build)
 
 The intersection math for the boxes was the "slab" method.
 
@@ -303,7 +324,7 @@ answer faster by having less instructions and shorter dependency chains.
 
 (XXX: Pseudocode)
 
-Now our speed can scale logarithmically with the size of the scene. However, as we naively entered
+Now our speed scales logarithmically with the size of the scene. However, as we naively entered
 the land of computer science, we have temporarily lost our ability to utilize modern hardware, and have
 to do some thinking to recover it.
 
