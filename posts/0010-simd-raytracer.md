@@ -167,7 +167,7 @@ hit, so that we know where to start our next bounce. In fact, this is so simple 
 it fits in pseudocode.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
-geometries, e.g. ray and triangle. The solve provides us with both the distance to the intersection
+geometries, e.g. ray and sphere. The solve provides us with both the distance to the intersection
 point and the normal of the intersected surface, both of which we need to procede.
 
 ```
@@ -241,7 +241,6 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
         }
 
         for aabox: scene.aaboxes {
-            // This is explained at https://tavianator.com/2022/ray_box_boundary.html
             hit, distance, normal := ray_aabox_intersection(ray_origin, ray_direction, aabox);
             if hit && distance < hit_distance {
                 hit_distance = distance;
