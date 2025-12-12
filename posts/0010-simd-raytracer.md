@@ -241,6 +241,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
         }
 
         for aabox: scene.aaboxes {
+            // This is explained at https://tavianator.com/2022/ray_box_boundary.html
             hit, distance, normal := ray_aabox_intersection(ray_origin, ray_direction, aabox);
             if hit && distance < hit_distance {
                 hit_distance = distance;
@@ -272,8 +273,6 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
 ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
-
-// We won't really be defining these later, but let's pretend they exist.
 attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material);
 bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material);
 ```
@@ -348,8 +347,8 @@ with an array of geometries (say triangles), we organize them into a tree, such 
 volume of a node (say axis-aligned bounding box) contains all down-tree triangles and bounding
 boxes.
 
-We start with a single BVH node that contains all triangles, and has a bounding box that contains
-all these triangles. We build the tree by recursively splitting the node:
+We start with a single BVH node that contains all triangles and build the tree by recursively
+splitting the node:
 
 - Pick a direction
 - Sort triangles along the picked direction
@@ -357,12 +356,9 @@ all these triangles. We build the tree by recursively splitting the node:
 - Link the created BVH nodes to the parent
 - Recurse to both child nodes
 
-We stop recursing, if the number of triangles in our current node is below a threshold, say 8.
+We stop recursing, if the number of triangles in our current node is below a threshold.
 
-(XXX: bvh build pseudocode)
-
-
-(XXX: Compile and run pseudocode...)
+(XXX: Audit/Compile/Run pseudocode, or cut it)
 ```
 Triangle :: struct {
     v0: Vec3;
@@ -376,6 +372,8 @@ AABox :: struct {
 }
 
 Node :: struct {
+    bbox: AABox;
+
     type: Node_Type;
     data: Node_Data;
 
@@ -394,7 +392,6 @@ Node :: struct {
     }
 
     Node_Inner :: struct {
-        aabox: AABox;
         left: s64;
         right: s64;
     }
@@ -434,7 +431,9 @@ make_bvh :: (triangles: [] Triangle) -> BVH {
 split_or_finalize :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> left: s64, left_triangles: [] Triangle, right: s64, right_triangles: [] Triangle {
     if triangles.count <= LEAF_TRIANGLE_COUNT  {
         node := bvh.nodes[node_index];
+        node.bbox = aabox_from_triangles(triangles);
         node.type = .LEAF;
+
         node.leaf.triangle_count = triangles.count;
         array_view_copy(*node.leaf.triangles, triangles, triangles.count);
 
@@ -447,8 +446,9 @@ split_or_finalize :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> lef
         array_add(*bvh.nodes);
 
         node := bvh.nodes[node_index];
+        node.bbox = aabox_from_triangles(triangles);
         node.type = .INNER;
-        node.inner.aabox = aabox_from_triangles(triangles);
+
         node.inner.left = left;
         node.inner.right = right;
 
@@ -475,26 +475,162 @@ split_or_finalize :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> lef
 
 ```
 
+The only important missing piece now is the math to compute the bbox-ray and triangle-ray
+intersections. A branchless version of the former is called "the slab method" [aabox-intersection],
+and the latter is named after its authors [moller-trumbore]. The branchless property is going to be
+useful in a bit.
 
-Now let's go over our initial, naive implementation. The raytracer's bounding volumes were
-axis-aligned boxes, and scene geometries were triangles.
+XXX: Consider explaining both algorithms instead of just linking them here?
 
+[aabox-intersection]: The slab method is neatly explained at
+https://tavianator.com/2022/ray_box_boundary.html.
 
-The intersection math for the boxes was the "slab" method.
+[triangle-intersection]: The ray-triangle intersection routine can be found on wikipedia:
+https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
-(XXX: Pseudocode, https://tavianator.com/2022/ray_box_boundary.html)
-
-Our initial prototype did triangle intersections as plane intersections combined three containment
-tests (for each triangle arm), but we eventually moved to Möller–Trumbore, which produces the same
-answer faster by having less instructions and shorter dependency chains.
-
-(XXX: Pseudocode)
-
-Now our speed scales logarithmically with the size of the scene. However, as we naively entered
-the land of computer science, we have temporarily lost our ability to utilize modern hardware, and have
-to do some thinking to recover it.
+Now the our raytracer scales logarithmically with the size of the scene. However, as we naively
+entered the land of computer science, we have temporarily lost our ability to utilize modern
+hardware, and have to do some thinking to recover it.
 
 # Raytracer Architecture, Main Course
+
+While the raytracer now has good algorithmic scaling with the size of the scene, we are not
+utilizing any intra-core parallelism yet. Each ray has to traverse the BVH, test against the
+axis-aligned bounding boxes of its nodes, and for each leaf also test against each triangle, one by
+one.
+
+There's two general avenues we could explore from here, similar to the naive array architecture from
+the previous section: parallelizing on rays, or parallelizing on geometry traversal.
+
+Unfortunately, in 2023 I wasn't smart enough to figure out the ray-wide version that included a BVH
+(or any other acceleration structure), and even today I am not sure it would work out all that
+well. My sketch version has several problems right off the bat. It would require SIMD gather, which
+is at least AVX2 on x64, and I am not even sure about the NEON equivalent. Moreover, the gather
+instructions would likely be doing loads from wildly different memory addresses (and thus also cache
+lines), and they are still subject to physical limitations like memory bandwidth. On top of all
+that, we'd have maintain a traversal stack for each SIMD lane... Well, it seems difficult.
+
+So, instead we are going to go the obvious way, SIMD crunching multiple geometries against a single
+ray. I later discovered papers that somewhat corroberated our strategy [XXX: link to papers], which
+feels good.
+
+The more interesting part is applying SIMD to crunch through the BVH volumes. The most obvious
+challenge here is that the data is not even remotely organized to do this - it is a binary tree,
+each node floating who knows where. However, what if we could reshape the tree such that it is
+essentially the same tree, but the bounding boxes we test against are laid out next to each other in
+memory?
+
+The transform we are going to do involves changing the tree's branching factor, as well as the
+slight subtlety of pulling the child nodes' bounding volumes into the parent node.
+
+```
+Node_Original :: struct {
+    // Bounding box for both child nodes
+    bbox: AABox;
+
+    left_child:  s64;
+    right_child: s64;
+}
+
+NodeX8 :: struct {
+    // Bounding boxes for each child node
+    bbox0: AABox;
+    bbox1: AABox;
+    bbox2: AABox;
+    bbox3: AABox;
+    bbox4: AABox;
+    bbox5: AABox;
+    bbox6: AABox;
+    bbox7: AABox;
+
+    child0: s64;
+    child1: s64;
+    child2: s64;
+    child3: s64;
+    child4: s64;
+    child5: s64;
+    child6: s64;
+    child7: s64;
+}
+```
+
+Visually, it looks something like this.
+
+
+```
+                 Conceptual Tree                                      Physical Tree
+
+                     +----+                                              +----+
+                     |    |                           +------------------|    |------------------+
+                     |    |                           |     +------------|    |------------+     |
+                     +----+                           |     |     +------+----+------+     |     |
+                      |  |                            |     |     |       |  |       |     |     |
+         +----+       |  |       +----+               |     |     |     +-+  --+     |     |     |
+         |    |-------+  +-------|    |               |     |     |     |      |     |     |     |
+         |    |                  |    |               |     |     |     |      |     |     |     |
+         +----+                  +----+               |     |     |     |      |     |     |     |
+          |  |                    |  |                |     |     |     |      |     |     |     |
+   +----+ |  | +----+      +----+ |  | +----+         |     |     |     |      |     |     |     |
+   |    |-+  +-|    |      |    |-+  +-|    |         |     |     |     |      |     |     |     |
+   |    |      |    |      |    |      |    |         |     |     |     |      |     |     |     |
+   +----+      +----+      +----+      +----+         |     |     |     |      |     |     |     |
+    |  |        |  |        |  |        |  |          |     |     |     |      |     |     |     |
+    |  |        |  |        |  |        |  |          |     |     |     |      |     |     |     |
++----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
+|    ||    ||    ||    ||    ||    ||    ||    |    |    ||    ||    ||    ||    ||    ||    ||    |
+|    ||    ||    ||    ||    ||    ||    ||    |    |    ||    ||    ||    ||    ||    ||    ||    |
++----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
+```
+
+Now, all we need to do is adjust the code that recursively builds the tree to build our wide nodes,
+and adjust the code that tests a ray against an axis-aligned box to test against 8 of them at a
+time. The final version of the NodeX8 sturcture will look like this:
+
+```
+AABoxPackx8 :: struct {
+    min: Vec3x8;
+    max: Vec3x8;
+}
+
+Nodex8 :: struct {
+    aabox: AABoxPackx8;
+    children: [8] TreeIndex; // We'll talk about tree index soon.
+}
+```
+
+Once we reach the triangles stored in the leaf, going wide is fairly straightforward. When building
+the leaf node, instead of just copying in the triangles, we addionally make sure they come in
+multiples of the SIMD lane width. Assuming AVX, the number of triangles stored in a leaf has to be a
+multiple of 8. Well, actually, we can have any number of triangles in a leaf, but the storage will
+be rounded up to be a multiple of 8, and any leftover space has to be masked out.
+
+```
+// Eight triangles, one struct.
+// The struct is aligned to the x64 cache line size, and takes up 5 cache lines.
+TrianglePackx8 :: struct {
+    v0: Vec3x8;    #align 64;
+    v1: Vec3x8;
+    v2: Vec3x8;
+
+    mask: u32x8;
+}
+```
+
+Also, since we are now doing SIMD, we would like to leave our inefficient heterogeneous tree nodes
+behind. Our new BVH has two kinds of nodes, and they are both stored in their own array. The inner
+nodes contain the bounding boxes for their child nodes, and can point to other inner or leaf
+nodes. The leaf nodes only contain triangle data. (XXX: mention that this is for memory use mainly -
+cache use wouldn't necessarily be much worse if were careful about what we were loading). We encode
+the information about which array are wem going to be loading from in the index itself:
+
+```
+// 2:62     -> 2-bit tag + 62-bit index into the inner node array
+// OR
+// 2:31:31  -> 2-bit tag + 2x 31-bit indices into the triangle array
+TreeIndex :: struct {
+    value: s64;
+}
+```
 
 - Wide BVH: the array of box packs and the array of triangle packs
 - Wide BVH also means less pointers, so it is smaller.
