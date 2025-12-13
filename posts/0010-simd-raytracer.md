@@ -1,40 +1,36 @@
-This is an article about raytracing on the CPU as fast as possible. Because we are going to be
-focusing on fast for most of the article, there will assumptions of raytracing, math and
-programming. To not leave people behind, I'll try explaining some basics as we go, but to get deeper
-understanding, I wholeheartedly recommend the Raytracing Weekend book series as a primer
-(https://raytracing.github.io/). The second topic for which there will be assumptions is SIMD, which
-I will not be explaining at all. Here, my long-form recommendation for the patient viewer is Casey
-Muratori's Handmade Hero (https://guide.handmadehero.org/) and Computer Enhance
+This is an article about fast raytracing on the CPU. Because we are going to be focusing on fast for
+most of the article, there will assumptions of raytracing, math and programming knowledge. To not
+leave people behind, I'll explain some basics as we go, but to get deeper understanding, I
+wholeheartedly recommend doing your own research. A good place to start is the Raytracing Weekend
+book series (https://raytracing.github.io/). The second topic for which there will be assumptions is
+SIMD, which I will not be explaining at all. Here, my long-form recommendation for the patient
+viewer is Casey Muratori's Handmade Hero (https://guide.handmadehero.org/) and Computer Enhance
 (https://computerenhance.com) series, which both touch on way more than just SIMD.
 
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
-work is the most focused technical work I have done. This was quite the luxury for me, as I usually
-don't get to concentracte for weeks on doing single part of the system well, and instead have to
-prioritize what is the most valuable thing for me to work on. This was a happy and rare exception.
+work is still the most focused nugget of technical work I have done. This was quite the luxury for
+me as I usually don't get to concentrate on doing single part of a larger system well, and instead
+have to prioritize what is the most valuable thing to work on. This was a happy and rare
+exception. Also note that I am a generalist, and don't consider myself deeply knowledgeable in
+computer graphics. I am painfully aware that I could have missed an obvious technique that could
+have made the results better. I'd be happy to receive your email with any feedback on the technical
+(and non-technical) contents of this article.
 
-Also note that I am a generalist, and don't consider myself deeply knowledgeable in computer
-graphics. I am painfully aware that I could have missed an obvious technique that could have made
-the results better. If after reading the article you think of something I did not explore
-thoroughly, I'll be delighted to get your email. Now, before we get to the core of the problem,
-here's the last bit of context.
-
-In late 2022 and early 2023, a startup company I worked for was about to get funding, and we started
-warming up the programming team, which meant building a small part of the system together first,
-before fanning out out wide. A small but important part we knew we needed.
-
-The goal of the company as percieved back then was to give real estate developers tools to
-procedurally generate housing architecture. This housing was supposed to meet the developer's
-criteria, such as yields, a correct mix of functions and apartment sizes, aesthetics, as well as
-spatial inputs (e.g. build here but not there, build in this shape...). We assumed that to generate
-that architecture, there would be a computer learning process. As it is with learning processes,
-they need to get feedback on their results from one iteration that can be fed into the next,
-gradually improving the results. Generating livable architecture is a very high-dimensional
-problem. A house is definitely not just any "house shaped" geometry, so before we can enter the
-realm of architecture (and maybe even good architecture?), there's structural engineering, business,
-regulatory and legal criteria that a development project must satisfy. For such a tall order, we
-assumed that even a smartly designed learning algorithm will have to do many iterations, getting
-feedback from a myriad of evaluators (structural, accoustic, sunlight/daylight, business, legal)
-until it reaches a solution.
+Now, before we get to the core of the problem, here's the last bit of context. In late 2022 and
+early 2023, a startup company I worked for was about to get funding, and we wanted to warm up the
+programming team on a thing we knew we are going to need, before fanning out and developing the
+rest. The goal of the company was to give real estate developers tools to procedurally generate
+housing architecture. This housing was supposed to meet the developer's criteria, such as yields, a
+correct mix of functions and apartment sizes, aesthetics, as well as spatial instructions
+(e.g. build here but not there, build in this shape...). We assumed that to generate the
+architecture, there would be a computer learning process. As it is with learning processes, they
+need to get feedback on their results from one iteration that can be fed into the next, gradually
+improving the results. Architecture is a very high-dimensional problem space. A house is definitely
+not just any "house shaped" geometry, and before we can enter the realm of architecture, there's
+structural engineering, business, regulatory and legal criteria that a house must satisfy. For such
+a tall order, we assumed that even a smartly designed learning algorithm will have to do many
+iterations, getting feedback from a myriad of evaluators (structural, sunlight/daylight, accoustic,
+business, legal) until it reaches a solution.
 
 (TODO(jt): Include GIF here?)
 
@@ -49,7 +45,7 @@ overnight on a powerful hardware [1].
 something, and minutes to get something useful. This degraded to having to do overnight runs for
 large and huge scenes. The problem is hard.
 
-Our team warmup focused on one particularly computationally demanding part of the evaluation
+The thing we focused on first was one particularly computationally demanding part of the evaluation
 process: the daylight evaluation. For the uninitiated, daylight evaluation is something that tells
 you how much light accumulates on surfaces in the interior of a building for some stable lighting
 conditions outside. This is then done for tens of thousands of surfaces inside many rooms and many
@@ -59,27 +55,33 @@ buildings that surround them [regulations].
 [regulations]: It turns out light is essential for the human wellbeing, so there is a minimal amount
 of daylight a dwelling must receive defined by regulations.
 
-The way daylight evaluation is usually implemented is raytracing [radiosity]. Interestingly enough,
-all current software solutions (Ladybug: https://www.ladybug.tools/ladybug.html, Climate Studio:
-https://www.solemma.com/climatestudio) internally depend on a raytracing package called Radiance
-(https://github.com/LBNL-ETA/Radiance/tree/master). This will be important later.
+The way daylight evaluation is usually implemented today is raytracing [radiosity]. Interestingly
+enough, all current software solutions (Ladybug: https://www.ladybug.tools/ladybug.html, Climate
+Studio: https://www.solemma.com/climatestudio) internally depend on a raytracing package called
+Radiance (https://github.com/LBNL-ETA/Radiance/tree/master), and for various reasons, both Radiance
+itself and the way it is integrated into daylighting products is a few orders of magnitude too slow
+to be useful as a machine learning feedback function. Having some knowledge of computers, we
+believed those orders of magnitude could be reclaimed, and thus our first quest was to build a fast
+daylight evaluator for our internal use [external].
 
 [radiosity]: Although there are analytical ways used for simpler scenes that were used before the
 wide adoption computers of in architecture studios.
 
-To bridge this closer to the videogame audience, the daylighting evaluation is very similar to what
-game developers call light baking: computing light simulation for static scenes and baking the
-results into planar (lightmaps) or spatial (light probes) textures, so that we know how a scene is
-lit without having to compute it at runtime. The differences between daylight evaluation and light
+[external]: About a year later, this evaluator was also released externally.
+
+# Ray Tracing
+
+To bridge this closer to the videogame audience, daylight evaluation is very similar to what game
+developers call light baking: computing light simulation for static scenes and baking the results
+into planar (lightmaps) or spatial (light probes) textures, so that we know how a scene is lit
+without having to compute it at runtime. The differences between daylight evaluation and light
 baking come down to how the results are used, not how they are computed. Compared to light baking,
 daylight evaluation doesn't care about color, only intensity, nor does it need to produce
 information about which direction the light is coming from for the light probes. Daylighting also
-only needs to simulate perfectly diffuse (Lambertian) materials, making some parts of the raytracer
-simpler. Additionally, there's a few peripheral bits about interpretting the results that are
-specific to the AEC industry regulations that I am going to purposefully ignore, and instead focus
-on raytracing, which I believe looks the same as it would in a computer graphics application.
-
-# Ray Tracing
+only needs to simulate perfectly diffuse (Lambertian) materials, making some parts simpler. There's
+also a few peripheral bits about interpretting the results that are specific to the AEC industry
+regulations that I am going to purposefully ignore, and instead focus on raytracing, which I believe
+looks the same as it would in a computer graphics application.
 
 (XXX: Picture)
 
