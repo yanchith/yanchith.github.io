@@ -6,6 +6,9 @@ book series (https://raytracing.github.io/). For computer knowledge, my long-for
 the patient viewer is Casey Muratori's Handmade Hero (https://guide.handmadehero.org/) and Computer
 Enhance (https://computerenhance.com) series.
 
+If, on the other hand, you would like to skip over to "the good part", you can go to Raytracer
+Architecture, Main Course.
+
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
 work is still the most focused nugget of technical work I have done. This was quite the luxury for
 me as I usually don't get to concentrate on doing single part of a larger system well, and instead
@@ -164,7 +167,6 @@ denoising fish-eye pictures.
 At a high level, a raytracer operates on a geometric description of the scene and a list of rays it
 needs to compute on that scene. These do not necessarilly change at the same rate from frame to
 frame, and many real-time raytracers reason about that (but we won't).
------------------------------------------------------------------------------------------------
 
 The simplest and most flexible way to represent the scene is to have arrays of various geometric
 primitives: triangles, spheres, planes, boxes... Raytracing the scene is about going over each ray
@@ -174,7 +176,7 @@ it fits in pseudocode.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
 geometries, e.g. ray and sphere. The solve provides us with both the distance to the intersection
-point and the normal of the intersected surface, both of which we need to procede.
+point and the normal of the intersected surface, both of which we need to procede. (XXX: Put links to box and triangle intersection math here?)
 
 ```
 Sphere :: struct {
@@ -184,7 +186,7 @@ Sphere :: struct {
 
 Plane :: struct {
     normal: Vec3;
-    d: float32;
+    d:      float32;
 }
 
 AABox :: struct {
@@ -278,36 +280,45 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
 ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
-attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material);
-bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material);
+attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
+bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
 ```
 
 Before addressing the elephant in the room and moving on from this approach, I want to mention some
 of its benefits.
 
-Firstly, there is no need to build acceleration structures - you already have the arrays of objects,
-or you can cheaply produce them, in case your representation does not already match what the
-raytracer needs. This is not going to be true for the more sophisticated designs, where a part of
-the raytracing cost will be spent on organizing data to accelerate raytracing.
+Firstly, this code listing is almost all there is to it! You have the arrays of objects, and you
+loop over them. Or, if you don't have data in the exact right shape, you can organize it
+easily. This is not going to be true for the later, more sophisticated designs. There is beauty in
+simplicity.
 
-Another virtue of the array approach is that the resulting code is very straightforward to
-SIMD. Going wide can happen either over rays or geometries, both of which have their respective
-strengths and weaknessess. When going wide over rays, we get a lot of value for each geometry we
-load, as we test it against 4/8/16 rays at a time. Problems arise with rays diverging, some rays
-hitting the end of their journey after less bounces than others, meaning we end up with finished
-rays in our wide registers, and either have to do something about that [hot-swapping-rays], or
-accept the wasted work. Going wide over rays was the route taken by Casey Muratori in his Handmade
-Ray educational miniseries: https://guide.handmadehero.org/ray/. Unlike paralellizing on rays, going
-wide over geometry doesn't ameliorate the cost of memory trafic to the CPU. Each geometric primitive
-is loaded to be tested against a ray, evicted by subsequent loads [eviction], only to be loaded
-again when the next ray is going to need that exact same memory. It still is an improvement over the
-non-SIMD version, as we at least compute more intersections at a time, and it does not need to care
-about dead rays.
+Another virtue of the scene laid out in arrays is that the resulting code is very straightforward to
+optimize. We can very easily start thinking about packing the arrays such that each cache line of
+geometry we load is not going to be wasted [memory].
+
+[memory]: For most software, the major source of slowness is getting data from memory to the
+CPU. Architecting programs such that we only load things we need, and do not load things we do not
+need can lead to significant speedups by itself.
+
+We can also quite easily make the code SIMD. Going wide can happen either over rays or geometries,
+both of which have their respective strengths and weaknessess. When going wide over rays, we get the
+obvious benefit of testing multiple rays against a geometry, but there is also a subtler compounding
+effect: we get a lot more value out of each geometry we load, as we test it against 4/8/16 rays at a
+time. Problems arise with some rays finishing after less bounces than others, making the contents of
+our wide registers be both active and finished rays. We either have to do something about that
+[hot-swapping-rays], or accept the wasted work. Going wide over rays was the route taken by Casey
+Muratori in his Handmade Ray educational miniseries: https://guide.handmadehero.org/ray/.
 
 [hot-swapping-rays]: After we have made a pass over all geometry and we know which rays hit what, we
 could write out the results for finished rays and load in new ones into our wide registers. This
-would incur some management and complexity overhead, but would also mean we utilize SIMD to the
-fullest right until the very end where we run out of rays to swap in.
+would incur some management and complexity overhead, but would also mean we utilize memory and SIMD
+to the fullest right until the very end where we run out of rays to swap in.
+
+Unlike paralellizing on rays, going wide over geometry doesn't ameliorate the cost of memory traffic
+to the CPU. Each wide geometric primitive is loaded to be tested against a ray, evicted by
+subsequent loads [eviction], only to be loaded again when the next ray is going to need that exact
+same memory. It still is an improvement over the non-SIMD version, as we at least compute more
+intersections at a time, and it does not need to care about dead rays.
 
 [eviction]: The exact level of eviction (register file, L1, L2, ...) gets worse with the size of the
 working set.
@@ -317,14 +328,15 @@ bounce, but most of those rays have no way to reach most geometries. This incurs
 and calculations per bounce. To get away from the O(m*n), we use acceleration structures to help
 with eliminating impossible hits, such as Bounding Volume Hierachies (BVH) or Octrees. Choosing a
 datastructure depends on the character of your data. We went with the BVH, because it doesn't have
-many assumptions and degrades gracefully with bad quality of input data [bvh-generality].
+many assumptions and degrades gracefully with bad quality of input [bvh-generality].
 
 [bvh-generality]: We didn't want to constrain the rest of what we are going to build by choosing an
 overly picky datastructure. This also helped us productize the daylighting evaluator later.
+# Raytracer Architecture, Still the Appetizer
 
 The BVH is a tree where each node has bounding volume geometrically containing the node's
-contents. This bounding volume is usually a parametric shape, e.g. an axis-aligned box or a
-sphere. The node's contents are either links to child nodes, or in case of leaf nodes actual scene
+contents. This bounding volume is usually a parametric shape, such as an axis-aligned box or a
+sphere. The node's contents are either links to child nodes, or in case of leaf nodes actual
 geometries. Note that a node's bounding volume only has a relation to the node's contents, but there
 is no direct relation between the bounding volumes of two sibling tree nodes. Two sibling nodes can
 very well have overlapping bounding volumes, both of which are contained by the parent's bounding
@@ -333,6 +345,7 @@ necessarilly mutually exclusive.
 
 (XXX: Picture)
 
+-----------------------------------------------------------------------------------------------
 Ray tracing against a BVH boils down to a tree traversal. We test a ray against a node's bounding
 volume first, and if that intersects, we test against its contents. Once we get to a leaf node, we
 test our ray against the node's geometry, keeping track of the closest hit distance and normal, as
