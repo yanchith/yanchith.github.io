@@ -2,10 +2,9 @@ This is an article about fast raytracing on the CPU. Because we are going to be 
 most of the article, there will assumptions of raytracing, math and programming knowledge. To not
 leave people behind, I'll explain some basics as we go, but to get deeper understanding, I
 wholeheartedly recommend doing your own research. A good place to start is the Raytracing Weekend
-book series (https://raytracing.github.io/). The second topic for which there will be assumptions is
-SIMD, which I will not be explaining at all. Here, my long-form recommendation for the patient
-viewer is Casey Muratori's Handmade Hero (https://guide.handmadehero.org/) and Computer Enhance
-(https://computerenhance.com) series, which both touch on way more than just SIMD.
+book series (https://raytracing.github.io/). For computer knowledge, my long-form recommendation for
+the patient viewer is Casey Muratori's Handmade Hero (https://guide.handmadehero.org/) and Computer
+Enhance (https://computerenhance.com) series.
 
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
 work is still the most focused nugget of technical work I have done. This was quite the luxury for
@@ -16,30 +15,28 @@ computer graphics. I am painfully aware that I could have missed an obvious tech
 have made the results better. I'd be happy to receive your email with any feedback on the technical
 (and non-technical) contents of this article.
 
-Now, before we get to the core of the problem, here's the last bit of context. In late 2022 and
-early 2023, a startup company I worked for was about to get funding, and we wanted to warm up the
-programming team on a thing we knew we are going to need, before fanning out and developing the
-rest. The goal of the company was to give real estate developers tools to procedurally generate
-housing architecture. This housing was supposed to meet the developer's criteria, such as yields, a
-correct mix of functions and apartment sizes, aesthetics, as well as spatial instructions
-(e.g. build here but not there, build in this shape...). We assumed that to generate the
-architecture, there would be a computer learning process. As it is with learning processes, they
-need to get feedback on their results from one iteration that can be fed into the next, gradually
-improving the results. Architecture is a very high-dimensional problem space. A house is definitely
-not just any "house shaped" geometry, and before we can enter the realm of architecture, there's
-structural engineering, business, regulatory and legal criteria that a house must satisfy. For such
-a tall order, we assumed that even a smartly designed learning algorithm will have to do many
-iterations, getting feedback from a myriad of evaluators (structural, sunlight/daylight, accoustic,
-business, legal) until it reaches a solution.
+Now, before we get to the core of the problem, here's the last bit of context. In early 2023, a
+startup company I worked for was about to get funding, and we wanted to warm up the programming team
+on a thing we knew we are going to need, before fanning out and developing the rest. The goal of the
+company was to give real estate developers tools to procedurally generate housing architecture. This
+housing was supposed to meet the developer's criteria, such as yields, mix of functions and
+apartment sizes, aesthetics, as well as spatial instructions (e.g. build here but not there, build
+in this shape...). We assumed that to generate the architecture, there would be a computer learning
+process. As it is with learning processes, they need to get feedback on their results from one
+iteration that can be fed into the next, gradually improving the results. Architecture is a very
+high-dimensional problem space. A house is definitely not just any "house shaped" geometry, and
+before we even enter the realm of architecture, there's structural engineering, business, regulatory
+and legal criteria that a house must satisfy. For such a tall order, we assumed that even a smartly
+designed learning algorithm will have to do many iterations, getting feedback from a myriad of
+evaluators (structural, sunlight/daylight, accoustic, business, legal) until it reaches a solution.
 
 (TODO(jt): Include GIF here?)
 
 So we generate stuff, evaluate, generate new stuff, evaluate, and so on, until eventually we stop
 after either all criteria are satisfied, no significant improvement can be found, or we exceeded our
-computational budget. And because the problem is going to be hard, we need to use that budget well
-to squeeze in as many iterations as possible. At the time we weren't quite sure whether we need to
-be fast so that we have a shot at being quasi-realtime, or to at least finish the computation
-overnight on a powerful hardware [1].
+computational budget. And because the problem is going to be hard, we need to use that budget
+well. At the time we weren't quite sure whether we need to be fast so that we have a shot at being
+quasi-realtime, or to at least finish the computation overnight on a powerful hardware [1].
 
 [1]: The state as of me leaving the company is that for small scenes it took seconds to get
 something, and minutes to get something useful. This degraded to having to do overnight runs for
@@ -48,30 +45,26 @@ large and huge scenes. The problem is hard.
 The thing we focused on first was one particularly computationally demanding part of the evaluation
 process: the daylight evaluation. For the uninitiated, daylight evaluation is something that tells
 you how much light accumulates on surfaces in the interior of a building for some stable lighting
-conditions outside. This is then done for tens of thousands of surfaces inside many rooms and many
+conditions outside. This is done for up to tens of thousands of surfaces inside many rooms and many
 buildings in a city block, both in the buildings you plan to build, and in the already existing
 buildings that surround them [regulations].
 
-[regulations]: It turns out light is essential for the human wellbeing, so there is a minimal amount
-of daylight a dwelling must receive defined by regulations.
+[regulations]: Light is essential for the human wellbeing, so there is a minimal amount of daylight
+a dwelling must receive defined by regulations.
 
-The way daylight evaluation is usually implemented today is raytracing [radiosity]. Interestingly
-enough, all current software solutions (Ladybug: https://www.ladybug.tools/ladybug.html, Climate
-Studio: https://www.solemma.com/climatestudio) internally depend on a raytracing package called
-Radiance (https://github.com/LBNL-ETA/Radiance/tree/master), and for various reasons, both Radiance
-itself and the way it is integrated into daylighting products is a few orders of magnitude too slow
-to be useful as a machine learning feedback function. Having some knowledge of computers, we
-believed those orders of magnitude could be reclaimed, and thus our first quest was to build a fast
-daylight evaluator for our internal use [external].
-
-[radiosity]: Although there are analytical ways used for simpler scenes that were used before the
-wide adoption computers of in architecture studios.
+The way daylight evaluation is usually implemented today is raytracing. Interestingly enough, all
+current software solutions (Ladybug: https://www.ladybug.tools/ladybug.html, Climate Studio:
+https://www.solemma.com/climatestudio) internally depend on a raytracing package called Radiance
+(https://github.com/LBNL-ETA/Radiance/tree/master), and for various reasons, both Radiance itself
+and the way it is integrated into products is a few orders of magnitude too slow to be useful as a
+machine learning feedback function. We believed those orders of magnitude could be reclaimed, and
+thus our first quest was to build a fast daylight evaluator for our internal use [external].
 
 [external]: About a year later, this evaluator was also released externally.
 
 # Ray Tracing
 
-To bridge this closer to the videogame audience, daylight evaluation is very similar to what game
+To bridge this closer to videogame audience, daylight evaluation is very similar to what game
 developers call light baking: computing light simulation for static scenes and baking the results
 into planar (lightmaps) or spatial (light probes) textures, so that we know how a scene is lit
 without having to compute it at runtime. The differences between daylight evaluation and light
@@ -79,88 +72,99 @@ baking come down to how the results are used, not how they are computed. Compare
 daylight evaluation doesn't care about color, only intensity, nor does it need to produce
 information about which direction the light is coming from for the light probes. Daylighting also
 only needs to simulate perfectly diffuse (Lambertian) materials, making some parts simpler. There's
-also a few peripheral bits about interpretting the results that are specific to the AEC industry
-regulations that I am going to purposefully ignore, and instead focus on raytracing, which I believe
-looks the same as it would in a computer graphics application.
+also a few peripheral bits about interpretting the results that are specific to the AEC industry. I
+am going to purposefully ignore these, and instead focus on raytracing, which I believe looks the
+same as it would in a computer graphics application.
 
-(XXX: Picture)
-
-Ray tracing is a process of simulating light. For a point in space, for instance a pixel of a
-digital camera, we want to determine the intensity and color of light that point receives. We do
-that by simulating paths that light could take through the scene from a light source to reach our
-point. Such paths can be either direct, or include one or more bounces from objects in the
+Ray tracing is a process of simulating light. For a point in space, for instance a pixel on a chip
+of a digital camera, we want to determine the intensity and color of light that point receives. We
+do that by simulating paths that light could have taken through the scene from a light source to
+reach our point. Such paths can be either direct, or include one or more bounces from objects in the
 scene. However, we are often interested in light reaching just a few select points in space, like
 the chip of our digital camera. Compared to all the places the light can go, light rays have only a
 miniscule chance of reaching the points we are interested in, directly or via bounces. We would have
 to shoot a lot of rays from light sources for them to trickle down to our measurement points in
 sufficient quantities.
 
-Instead, we lean on a laws of the universe regarding (the absence of) the arrow of time for the
+(XXX: Picture)
+
+Instead, we lean on laws of the universe regarding (the absence of) the arrow of time for the
 behavior of particles. If we were shown a movie of elementary particles moving through space,
 sometimes colliding with each other, we would have a hard time telling whether the movie is playing
-forward or backward. This is because it is impossible to tell - they behave exactly the same whether
+forward or backward. This is because it is impossible to tell - they follow the same rules whether
 they are moving forward or backward in time, and it is only possible to discern the direction of
 time once we have a large number of particles and probability enters the picture, pushing particles
 towards states with high entropy [probability]. For us, this means that if we have a path between a
-measurement point and a light source, a photon could have taken that exact path both in both
-directions [oversimplificatoin].
+measurement point and a light source, a photon could have taken that exact path in both directions
+[oversimplification].
 
 [probability]: The fundamental laws for particles do not change when there's many of them. The
-probabilistic behavior emerges from our inability to keep track large data, leading us to reason
+probabilistic behavior arises from our inability to keep track large data, leading us to reason
 about macrostates and entropy instead.
 
 [oversimplification]: This is an oversimplification on many levels. Photons do not necessarily
 bounce of off all surfaces. Sometimes they are absorbed, and a new photon is emitted. However, there
-is a grain of truth in this model, and imagining photons as "zillions of billiard balls" bouncing
-around doesn't disrupt our high level simulation.
+is a grain of truth in this model, and imagining photons as "zillions of bouncing billiard balls"
+doesn't disrupt our high level simulation.
 
 The implication of bidirectionality for our simulation is that we can trace rays in reverse: from
 the relatively few points we are interested in towards light sources. For infinite number of rays
-the results would have been the same, but with our finite limitations, we have higher chance of
-sucessfully completing the path between the light source and the camera going in backwards
-[big-lights]. With both forward and reverse raytracing, we keep track of how much energy we loose
-with each bounce. Because these energy losses (also called attenuation) multiply, and multiplication
-is commutative, this works out the same regardless of the direction we trace the ray in.
+the we would have reached the same answer either way, but with our finite limitations, we have
+higher chance of sucessfully completing the path between the light source and the camera going
+backwards [big-lights]. With both forward and reverse raytracing, we keep track of how much energy
+we loose with each bounce. Because these energy losses (also called attenuation) multiply, and
+multiplication is commutative, this works out the same regardless of the direction we trace the ray
+in.
 
 [big-lights]: Because light sources are usually bigger than our camera, and even if the ray escapes
 the scene, we can sample a background skybox to get some ambient value of light.
 
 So we trace rays from our measurement points, hoping they eventually reach sources of light. These
 rays go in a straight line until they hit something. Depending on what was hit, various things
-happen. If the ray hits a light reflecting surface, it bounces off of the it back into the
-scene. The new direction of the ray depends on the physical properties of the surface. Some surfaces
-reflect the ray as a mirror would, others deflect the ray in a random direction, and there are
-usually more complicated behaviors for realistic materials. This is described by the Bidirectional
-Reflectance Distribution Function (BRDF). A BRDF for a real material can be quite complex
-[anisotropy], and cannot always be defined by a simple mathematical formula. For many realistic
-materials, the BRDF is actually a lookup table [merl]
+happen.
+
+If the ray hits a light reflecting surface, it bounces off of the it back into the scene. The new
+direction of the ray depends on the physical properties of the surface. Some surfaces reflect the
+ray as a mirror would, others deflect the ray in a random direction, and there are more complicated
+behaviors for realistic materials, described by the material's Bidirectional Reflectance
+Distribution Function (BRDF). A BRDF can be quite complex [anisotropy], and cannot always be defined
+by a mathematical formula. For many realistic materials, the BRDF is actually a lookup table [MERL],
+measured by putting the material in a Gonioreflectometer.
 
 [anisotropy]: For instance, the BRDF for animal fur behaves differently for various orientations of
 the incoming and outgoing rays relative to the surface.
 
-[merl]: For instance, see the MERL library of materials:
+[MERL]: For instance, see the MERL library of materials:
 https://www.merl.com/research/downloads/BRDF
 
 If the ray hits a light source, it ends its journey. We read the light's value and apply the
 attenuation the ray has accumulated when bouncing off of materials along its path. Because each
-bounce attenuates the ray, we can decide to terminate the ray early after a certain amount of
+bounce attenuates the ray, we also can decide to terminate the ray early after a certain amount of
 bounces, as even if it did reach a light source eventually, the light's contribution through that
-particular ray would have been close to zero.
+particular ray would have been close to zero. (XXX: Include this in the picture above?)
 
-Hopefully multiple rays shot from our camera reach light sources. We compute the light value at the
-camera's pixel as the sum of the individual ray contributions divided by the number of cast
-rays. Because scenes are not always well lit, it may take a lot of rays for us to form a coherent
-picture of what the scene looks like from the perspective of the camera. Low light scenes are prone
-to noise, when various neighboring pixels in the camera collect dramatically different values of
-light. As the number of rays increases to infinity, the noise becomes weaker, but because a large
-number of rays is not always practical, we often employ denoising algorithms that reconstruct
-information from noisy pictures.
+Hopefully multiple rays shot from our camera reach light sources. We compute the light value
+reaching the camera's pixel as the sum of the individual ray contributions divided by the number of
+cast rays. Because scenes are not always well lit, it may take a lot of rays for us to form a
+coherent picture of what the scene looks like from the perspective of the camera. Low light scenes
+are prone to noise, when various neighboring pixels in the camera collect dramatically different
+values of light. As the number of rays increases to infinity, the noise becomes weaker, but because
+a large number of rays is not always practical, we often employ denoising algorithms that
+reconstruct information from noisy pictures. Denoising is an important part of modern raytracing,
+because it lets us spend a fixed cost to substantially improve the result quality that would
+otherwise have to be improved by shooting unreasonable amounts of rays. It might have also been
+useful in our usecase [half-spherical-probes], but we simply didn't have the time to pursue it.
+
+[half-spherical-probes]: Thinking back, denoising would have been interesting for us, because our
+raytracer collected light in half-sphere shaped light probes, so essentially we would have been
+denoising fish-eye pictures.
 
 # Raytracer Architecture, Appetizer
 
-At a high level, a raytracer operates on a geometric description of the scene and a list of ray
-tracing tasks it needs to compute on that scene. These do not necessarilly change at the same rate
-from frame to frame, and many real-time raytracers reason about that, but we won't.
+At a high level, a raytracer operates on a geometric description of the scene and a list of rays it
+needs to compute on that scene. These do not necessarilly change at the same rate from frame to
+frame, and many real-time raytracers reason about that (but we won't).
+-----------------------------------------------------------------------------------------------
 
 The simplest and most flexible way to represent the scene is to have arrays of various geometric
 primitives: triangles, spheres, planes, boxes... Raytracing the scene is about going over each ray
