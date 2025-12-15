@@ -610,26 +610,75 @@ to each other in memory?
 In some sense, this is the core idea of the raytracer codebase (and this article). At that time I
 was happy that I came up with on my own, but in retrospect it looks fairly obvious, and cursory
 internet search says other people also do this [XXX: link to QBVH paper and AMD RDNA Chips & Cheese
-article]. The transform we are going to do involves changing the tree's branching factor, as well as
-pulling the child nodes' bounding volumes into the parent node [boundless-root].
+article].
 
-[boundless-root]: Yes, this leaves the root of the tree without a bounding volume. We instead assume
-the root is always reached and test directly against children.
+However, before we get to that, there is one last piece of housekeeping to address. In the previous
+iteration, both types of BVH nodes were stored in a single array and we interpretted their contents
+based on the the type tag.
 
-From now on, the code snippets will target AVX hardware (8-wide), but we could just as well build
-SSE/NEON (4-wide) versions of the data structures. In fact, at a later point in the article we talk
-about how we make sure multiple implementations exist side by side and produce the same results.
+Since we are about to do SIMD, we would like to leave the heterogeneous tree nodes behind. There's
+two problems with the heterogenous tree, the main one being the memory we have to load when we walk
+it. We want to make sure that when we load a node, each loaded byte in a cache line counts. Towards
+that end, we would like to have the nodes contain only what we need, align them to cache lines and
+make sure they do not straddle cache line boundaries. This is not impossible to do for the
+heterogenous tree, but it is simpler to think about when the two kinds of nodes are not stored in
+the same array. The second problem is wasted memory. This is not such a big deal today, but still it
+would be nice if we allocated only what we used.
+
+Our new BVH has two kinds of nodes, each stored in their own array. The inner nodes contain indices
+that point into either inner nodes or leaf nodes. The leaf nodes only contain triangle and material
+data.
 
 ```
-Node_Original :: struct {
-    // Bounding box for this node
-    bbox: AABox;
-
-    left_child:  s64;
-    right_child: s64;
+BVH :: struct {
+    inner_nodes: [..] Inner_Node;
+    leaf_nodes:  [..] Leaf_Node;
 }
 
-NodeX8 :: struct {
+Inner_Node :: struct {
+    bbox: AABox;
+
+    left: Tree_Index;
+    right: Tree_Index;
+}
+
+Leaf_Node :: struct {
+    bbox: AABox;
+
+    count: s64;
+    triangles: [LEAF_TRIANGLE_COUNT] Triangle;
+    materials: [LEAF_TRIANGLE_COUNT] Material; // XXX: Make sure to align the materials to a separate cache line.
+}
+
+Tree_Index :: struct {
+    // 2:63 - 2 bits of tag to select the array, 62 bits to index into the array.
+    value: s64;
+
+    TAG_NIL   :: 0;
+    TAG_INNER :: 1;
+    TAG_LEAF  :: 2;
+}
+
+make_inner_node_index :: (index: s64) -> Tree_Index { return .{ (TAG_INNER << 62) | index }; }
+make_leaf_node_index  :: (index: s64) -> Tree_Index { return .{ (TAG_LEAF << 64 | index) }; }
+```
+
+Now we are ready.
+
+From now on, the code snippets will target AVX hardware (8-wide), but we could just as well build
+SSE/NEON (4-wide) or AVX-512 (16-wide) versions of the data structures. In fact, at a later point in
+the article we talk about how we make sure multiple implementations exist side by side and produce
+the same results.
+
+The transform we are going to do involves changing the tree's branching factor, as well as pulling
+the child nodes' bounding volumes into the parent node [boundless-root]. When applied to the inner
+node, it looks like this:
+
+[boundless-root]: This leaves the root of the tree without a bounding volume. We instead assume the
+root is always reached and test directly against children.
+
+```
+Inner_Node_X8 :: struct {
     // Bounding boxes for each child node
     bbox0: AABox;
     bbox1: AABox;
@@ -640,18 +689,16 @@ NodeX8 :: struct {
     bbox6: AABox;
     bbox7: AABox;
 
-    child0: s64;
-    child1: s64;
-    child2: s64;
-    child3: s64;
-    child4: s64;
-    child5: s64;
-    child6: s64;
-    child7: s64;
+    child0: Tree_Index;
+    child1: Tree_Index;
+    child2: Tree_Index;
+    child3: Tree_Index;
+    child4: Tree_Index;
+    child5: Tree_Index;
+    child6: Tree_Index;
+    child7: Tree_Index;
 }
 ```
-
-Visually, it looks something like this.
 
 (XXX: Redraw picture and point out where the bounding volumes are stored)
 ```
@@ -680,23 +727,30 @@ Visually, it looks something like this.
 ```
 
 To properly SIMD-ify these, we just need to make sure everything is aligned properly. The final
-version of the NodeX8 sturcture will look like this:
+version of the wide node will look like this:
 
 ```
-AABoxPackx8 :: struct {
+AABox_Pack_X8 :: struct {
     min: Vec3x8;   #align 64
     max: Vec3x8;
 }
 
-Nodex8 :: struct {
-    aabox: AABoxPackx8;
-    children: [8] TreeIndex; // We'll talk about tree index soon.
+Inner_Node_X8 :: struct {
+    aabox: AABox_Pack_X8;
+    children: [8] Tree_Index;
 }
 ```
 
 Naturally, we'll need to adjust both the code that builds the tree and the code that traverses it.
 
-(XXX: HERE Describe changes to build and traversing code)
+The build code is fairly boring, but also quite verbose (so no pseudocode this time). The
+maybe_split function now splits the node 8-way. It does this by first splitting the triangles into
+two groups, then splitting those into four, and finally splitting those once again. It computes a
+bounding box for each group of triangles and writes it in the current node. When there isn't enough
+triangles to split 8-way, some bounding boxes are going to be empty (zero-dimensional bounding boxes
+located at zero), and their corresponding indices will be NIL, just in case.
+
+(XXX: HERE traversing pseudocode, including wide intersection routine)
 
 Once we crunch through the tree and reach the triangles stored in the leaf, going wide is fairly
 straightforward. When building the leaf node, instead of just copying in the triangles, we
@@ -714,30 +768,6 @@ TrianglePackx8 :: struct {
     v2: Vec3x8;
 
     mask: u32x8;
-}
-```
-
-(XXX: The following TreeIndex explanation should happen before we do the wide transform)
-
-Also, since we are now doing SIMD, we would like to leave our inefficient heterogeneous tree nodes
-behind. There's two problems with the heterogenous tree, the main one being the memory we have to
-load when we walk it. We want to make sure that when we load a node, each loaded byte in a cache
-line counts. Towards that end, we would like to have the nodes contain only what we need, align them
-to cache lines and make sure they do not straddle cache line boundaries. This is not impossible to
-do for the heterogenous tree, but it is simpler to think about when the two kinds of nodes are not
-stored in the same array. The second problem is wasted memory. This is not such a big deal today,
-but still it would be nice if we allocated only what we used.
-
-Our new BVH has two kinds of nodes, each stored in their own array. The inner nodes contain
-the bounding boxes for their child nodes, and can point to other inner or leaf nodes. The leaf nodes
-only contain triangle data.
-
-```
-// 2:62     -> 2-bit tag + 62-bit index into the inner node array
-// OR
-// 2:31:31  -> 2-bit tag + 2x 31-bit indices into the triangle array
-TreeIndex :: struct {
-    value: s64;
 }
 ```
 
