@@ -588,8 +588,8 @@ utilizing any intra-core parallelism yet. Each ray has to traverse the BVH, test
 axis-aligned bounding boxes of its nodes, and for each leaf also test against each triangle, one by
 one.
 
-There's two general avenues we could explore from here, similar to the naive array architecture from
-earlier: parallelizing on rays, or parallelizing on geometry traversal.
+There's two general avenues we could explore from here, similar to the simple array architecture
+from earlier: parallelizing on rays, or parallelizing on geometry traversal.
 
 Unfortunately, in 2023 I wasn't smart enough to figure out the ray-parallel version that included a
 BVH, and even today I am not sure it would work out all that well. My sketch version has several
@@ -597,23 +597,28 @@ problems right off the bat. It would require SIMD gather, which is at least AVX2
 not even sure if the NEON equivalent exists. Moreover, the gather instructions would likely be doing
 loads from wildly different memory addresses (and cache lines), and they would still subject to
 physical limitations like memory bandwidth. On top of all that, we'd have maintain a traversal stack
-per SIMD lane... Well, it seems difficult.
+per SIMD lane... Seems troublesome.
 
 So, instead we are going to go the obvious way, SIMD crunching multiple geometries against a single
-ray. I later discovered papers that somewhat corroberated our strategy [XXX: link to papers], which
-feels good.
+ray. While you can imagine how we'd SIMD-ify testing rays against triangles in leaf nodes, the more
+interesting part is applying SIMD to crunch through the BVH volumes. The most obvious challenge here
+is that the data is not even remotely organized to do this - the bounding boxes are stored in nodes
+of a binary tree, each node floating who knows where. However, what if we could reshape the tree
+such that it is essentially the same tree, but the bounding boxes we test against are laid out next
+to each other in memory?
 
-The more interesting part is applying SIMD to crunch through the BVH volumes. The most obvious
-challenge here is that the data is not even remotely organized to do this - it is a binary tree,
-each node floating who knows where. However, what if we could reshape the tree such that it is
-essentially the same tree, but the bounding boxes we test against are laid out next to each other in
-memory?
+In some sense, this is the core idea of the raytracer codebase (and this article). At that time I
+was happy that I came up with on my own, but in retrospect it looks fairly obvious, and cursory
+internet search says other people also do this [XXX: link to QBVH paper and AMD RDNA Chips & Cheese
+article]. The transform we are going to do involves changing the tree's branching factor, as well as
+pulling the child nodes' bounding volumes into the parent node [boundless-root].
 
-The transform we are going to do involves changing the tree's branching factor, as well as the
-subtle move of pulling the child nodes' bounding volumes into the parent node [root-without-bounding-volume].
+[boundless-root]: Yes, this leaves the root of the tree without a bounding volume. We instead assume
+the root is always reached and test directly against children.
 
-[root-without-bounding-volume]: Yes, this leaves the root of the tree without a bounding volume. We
-instead assume the root is always reached and test directly against children.
+From now on, the code snippets will target AVX hardware (8-wide), but we could just as well build
+SSE/NEON (4-wide) versions of the data structures. In fact, at a later point in the article we talk
+about how we make sure multiple implementations exist side by side and produce the same results.
 
 ```
 Node_Original :: struct {
@@ -674,13 +679,12 @@ Visually, it looks something like this.
 +----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
 ```
 
-Now, all we need to do is adjust the code that recursively builds the tree to build our wide nodes,
-and adjust the code that tests a ray against an axis-aligned box to test against 8 of them at a
-time. The final version of the NodeX8 sturcture will look like this:
+To properly SIMD-ify these, we just need to make sure everything is aligned properly. The final
+version of the NodeX8 sturcture will look like this:
 
 ```
 AABoxPackx8 :: struct {
-    min: Vec3x8;
+    min: Vec3x8;   #align 64
     max: Vec3x8;
 }
 
@@ -690,11 +694,16 @@ Nodex8 :: struct {
 }
 ```
 
-Once we reach the triangles stored in the leaf, going wide is fairly straightforward. When building
-the leaf node, instead of just copying in the triangles, we additionally make sure they come in
-multiples of the SIMD lane width. Assuming AVX, the number of triangles stored in a leaf has to be a
-multiple of 8. Well, actually, we can have any number of triangles in a leaf, but the storage will
-be rounded up to be a multiple of 8, and any leftover space has to be masked out.
+Naturally, we'll need to adjust both the code that builds the tree and the code that traverses it.
+
+(XXX: HERE Describe changes to build and traversing code)
+
+Once we crunch through the tree and reach the triangles stored in the leaf, going wide is fairly
+straightforward. When building the leaf node, instead of just copying in the triangles, we
+additionally make sure they come in multiples of the SIMD lane width. Assuming AVX, the number of
+triangles stored in a leaf has to be a multiple of 8. Well, actually, we can have any number of
+triangles in a leaf, but the storage will be rounded up to be a multiple of 8, and any leftover
+space has to be masked out.
 
 ```
 // Eight triangles, one struct.
@@ -707,6 +716,8 @@ TrianglePackx8 :: struct {
     mask: u32x8;
 }
 ```
+
+(XXX: The following TreeIndex explanation should happen before we do the wide transform)
 
 Also, since we are now doing SIMD, we would like to leave our inefficient heterogeneous tree nodes
 behind. There's two problems with the heterogenous tree, the main one being the memory we have to
@@ -741,6 +752,7 @@ TreeIndex :: struct {
 - Pre-baked sphere rays.
 - SAH optimization (Credit DH)
 - targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
+- making sure the multiple backends return the same results -> tree structure must be the same
 - memory allocation: the only two places where a raytracer would allocate is the stack for
   traversing the BVH and the job queue. Make sure to use cheap memory for both.
 
