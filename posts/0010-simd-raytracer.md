@@ -344,6 +344,10 @@ very well have overlapping bounding volumes, both of which are contained by the 
 volume. This means that traversing a BVH can take multiple paths at the same time, as they aren't
 necessarilly mutually exclusive.
 
+In practice, the bounding volume can any volumetric geometry and the leaf nodes can store whatever
+we want, but our raytracer used axis-aligned bounding boxes and triangles, so we are going to do the
+same here.
+
 (XXX: Picture)
 
 Testing rays against a BVH is not all that different to what we have been doing until now. We are
@@ -470,9 +474,8 @@ node's bounding volume contains the objects of that node, including child nodes,
 otherwise has no relation to bounding volumes of sibling nodes. This makes it a little easier to
 build a BVH. For a good BVH, we'd also like to minimize the volume each node takes, and make
 bounding volumes of sibling nodes overlap less. We'll work on building a good BVH later. Starting
-with an array of geometries (say triangles), we organize them into a tree, such that the bounding
-volume of a node (say axis-aligned bounding box) contains all down-tree triangles and bounding
-boxes.
+with an array of triangles, we organize them into a tree, such that the bounding box of a node
+contains all down-tree triangles and bounding boxes.
 
 We start with a single BVH node that contains all triangles and build the tree by recursively
 splitting the node:
