@@ -7,7 +7,7 @@ the patient viewer is Casey Muratori's Handmade Hero (https://guide.handmadehero
 Enhance (https://computerenhance.com) series.
 
 If, on the other hand, you would like to skip over to "the good part", you can go to Raytracer
-Architecture, Main Course.
+Architecture, Second Main Course.
 
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
 work is still the most focused nugget of technical work I have done. This was quite the luxury for
@@ -467,25 +467,16 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 
 ```
 
------------------------------------------------------------------------------------------------
+Building a BVH is just a little more complicated than using it. I mentioned previously that a node's
+bounding volume has no relation to bounding volumes of sibling nodes. This makes it a little easier
+to build a bad but correct BVH. For a good BVH, we'd also like to minimize the volume each node
+takes, and make bounding volumes of sibling nodes overlap less. We'll work on building a good BVH
+later.
 
-Building a BVH is just a little more complicated than using it. I mentioned previously that in a
-BVH, a node's bounding volume has no relation to bounding volumes of sibling nodes. This makes it a
-little easier to build a correct BVH. For a correct and good BVH, we'd also like to minimize the
-volume each node takes, and make bounding volumes of sibling nodes overlap less. We'll work on
-building a good BVH later. Starting with an array of triangles, we organize them into a tree, such
-that the bounding box of a node geometrically contains all down-tree triangles and bounding boxes.
+Starting with an array of triangles, we begin building the hierachy by conceptually putting all the
+triangles into a single BVH node. We then recursively split nodes until the number of triangles they
+contain is below a predefined threshold.
 
-We start with a single BVH node that conceptually contains all triangles. We build the tree by
-recursively splitting the node, until all nodes have the number of triangles below a threshold.
-
-- Pick a direction
-- Sort triangles along the picked direction
-- Split the array in the middle, giving each part to a newly created BVH node
-- Link the created BVH nodes to the parent
-- Recurse to both child nodes
-
-(XXX: Audit/Compile/Run pseudocode, or cut it)
 ```
 // Struct definitions are the same as in previous listing.
 
@@ -498,72 +489,87 @@ make_bvh :: (triangles: [] Triangle) -> BVH {
         triangles: [] Triangle;
     }
 
-    stack: [..] s64;
+    stack: [..] Frame;
     array_add(*stack, .{ 0, triangles });
 
     while stack.count {
         frame := pop(*stack);
 
-        left_index, left_triangles, right_index, right_triangles := split_or_finalize(frame.node_index, frame.triangles, *bvh);
-
-        if left_index >= 0   array_add(*stack, .{ left_index, left_triangles });
-        if right_index >= 0  array_add(*stack, .{ right_index, right_triangles });
+        was_split, split := maybe_split(frame.node_index, frame.triangles, *bvh);
+        if was_split {
+            array_add(*stack, .{ split.left_index, split.left_triangles });
+            array_add(*stack, .{ split.right_index, split.right_triangles });
+        }
     }
+
+    return bvh;
 }
 
-split_or_finalize :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> left: s64, left_triangles: [] Triangle, right: s64, right_triangles: [] Triangle {
-    if triangles.count <= LEAF_TRIANGLE_COUNT  {
-        node := bvh.nodes[node_index];
+Split :: struct {
+    left_index:      s64;
+    left_triangles:  [] Triangle;
+    right_index:     s64;
+    right_triangles: [] Triangle;
+}
+
+maybe_split :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> was_split: bool, split: Split {
+    LEAF_TRIANGLE_COUNT :: 16;
+
+    if triangles.count <= LEAF_TRIANGLE_COUNT {
+        node := *bvh.nodes[node_index];
         node.bbox = aabox_from_triangles(triangles);
         node.type = .LEAF;
 
         node.leaf.triangle_count = triangles.count;
         array_view_copy(*node.leaf.triangles, triangles, triangles.count);
 
-        return -1, .[], -1, .[];
+        return false, .{};
     } else {
-        left := bvh.nodes.count;
-        right := bvh.nodes.count + 1;
+        left_index  := bvh.nodes.count;
+        right_index := bvh.nodes.count + 1;
 
         array_add(*bvh.nodes);
         array_add(*bvh.nodes);
 
-        node := bvh.nodes[node_index];
+        node := *bvh.nodes[node_index];
         node.bbox = aabox_from_triangles(triangles);
         node.type = .INNER;
 
-        node.inner.left = left;
-        node.inner.right = right;
+        node.inner.left  = left_index;
+        node.inner.right = right_index;
+
+        size_x := node.bbox.max.x - node.bbox.min.x;
+        size_y := node.bbox.max.y - node.bbox.min.y;
+        size_z := node.bbox.max.z - node.bbox.min.z;
 
         // We compare one of the triangle points, but we could also compare centroids.
-        comparator_x :: (a: Triangle, b: Triangle) -> float32 { return a.v0.x - b.v0.x; }
-        comparator_y :: (a: Triangle, b: Triangle) -> float32 { return a.v0.y - b.v0.y; }
-        comparator_z :: (a: Triangle, b: Triangle) -> float32 { return a.v0.z - b.v0.z; }
+        compare_x :: (a: Triangle, b: Triangle) -> float32 { return a.v0.x - b.v0.x; }
+        compare_y :: (a: Triangle, b: Triangle) -> float32 { return a.v0.y - b.v0.y; }
+        compare_z :: (a: Triangle, b: Triangle) -> float32 { return a.v0.z - b.v0.z; }
 
-        // XXX: Pick based on largest dimension
-        comparator := comparator_x;
+        if size_x > size_y && size_x > size_z {
+            quick_sort(triangles, compare_x);
+        } else if size_y > size_z {
+            quick_sort(triangles, compare_y);
+        } else {
+            quick_sort(triangles, compare_z);
+        }
 
-        quick_sort(triangles, comparator);
+        left_triangles, right_triangles = split_array_view(triangles, triangles.count / 2);
 
-        left_triangles = triangles;
-        left_triangles.count /= 2;
-
-        right_triangles = triangles;
-        right_triangles.data += left_triangles.count;
-        right_triangles.count -= left_triangles.count;
-
-        return left, left_triangles, right, right_triangles;
+        return true, .{ left_index, left_triangles, right_index, right_triangles };
     }
 }
-
 ```
+
+-----------------------------------------------------------------------------------------------
+
+(XXX: This is too late to be explaining the intersection math. Explain or link to external explanation in the appetizer?)
 
 The only important missing piece now is the math to compute the bbox-ray and triangle-ray
 intersections. A branchless version of the former is called "the slab method" [aabox-intersection],
 and the latter is named after its authors [moller-trumbore]. The branchless property is going to be
 useful in a bit.
-
-XXX: Consider explaining both algorithms instead of just linking them here?
 
 [aabox-intersection]: The slab method is neatly explained at
 https://tavianator.com/2022/ray_box_boundary.html.
@@ -583,15 +589,15 @@ axis-aligned bounding boxes of its nodes, and for each leaf also test against ea
 one.
 
 There's two general avenues we could explore from here, similar to the naive array architecture from
-the previous section: parallelizing on rays, or parallelizing on geometry traversal.
+earlier: parallelizing on rays, or parallelizing on geometry traversal.
 
-Unfortunately, in 2023 I wasn't smart enough to figure out the ray-wide version that included a BVH
-(or any other acceleration structure), and even today I am not sure it would work out all that
-well. My sketch version has several problems right off the bat. It would require SIMD gather, which
-is at least AVX2 on x64, and I am not even sure about the NEON equivalent. Moreover, the gather
-instructions would likely be doing loads from wildly different memory addresses (and thus also cache
-lines), and they are still subject to physical limitations like memory bandwidth. On top of all
-that, we'd have maintain a traversal stack for each SIMD lane... Well, it seems difficult.
+Unfortunately, in 2023 I wasn't smart enough to figure out the ray-parallel version that included a
+BVH, and even today I am not sure it would work out all that well. My sketch version has several
+problems right off the bat. It would require SIMD gather, which is at least AVX2 on x64, and I am
+not even sure if the NEON equivalent exists. Moreover, the gather instructions would likely be doing
+loads from wildly different memory addresses (and cache lines), and they would still subject to
+physical limitations like memory bandwidth. On top of all that, we'd have maintain a traversal stack
+per SIMD lane... Well, it seems difficult.
 
 So, instead we are going to go the obvious way, SIMD crunching multiple geometries against a single
 ray. I later discovered papers that somewhat corroberated our strategy [XXX: link to papers], which
@@ -604,11 +610,14 @@ essentially the same tree, but the bounding boxes we test against are laid out n
 memory?
 
 The transform we are going to do involves changing the tree's branching factor, as well as the
-slight subtlety of pulling the child nodes' bounding volumes into the parent node.
+subtle move of pulling the child nodes' bounding volumes into the parent node [root-without-bounding-volume].
+
+[root-without-bounding-volume]: Yes, this leaves the root of the tree without a bounding volume. We
+instead assume the root is always reached and test directly against children.
 
 ```
 Node_Original :: struct {
-    // Bounding box for both child nodes
+    // Bounding box for this node
     bbox: AABox;
 
     left_child:  s64;
@@ -639,7 +648,7 @@ NodeX8 :: struct {
 
 Visually, it looks something like this.
 
-
+(XXX: Redraw picture and point out where the bounding volumes are stored)
 ```
                  Conceptual Tree                                      Physical Tree
 
