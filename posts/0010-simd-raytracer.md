@@ -176,7 +176,7 @@ it fits in pseudocode.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
 geometries, e.g. ray and sphere. The solve provides us with both the distance to the intersection
-point and the normal of the intersected surface, both of which we need to procede. (XXX: Put links to box and triangle intersection math here?)
+point and the normal of the intersected surface, both of which we need to procede.
 
 ```
 Sphere :: struct {
@@ -333,7 +333,7 @@ many assumptions and degrades gracefully with bad quality of input [bvh-generali
 [bvh-generality]: We didn't want to constrain the rest of what we are going to build by choosing an
 overly picky datastructure. This also helped us productize the daylighting evaluator later.
 
-# Raytracer Architecture, Still the Appetizer
+# Raytracer Architecture, Main Course
 
 The BVH is a tree where each node has bounding volume geometrically containing the node's
 contents. This bounding volume is usually a parametric shape, such as an axis-aligned box or a
@@ -469,24 +469,21 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 
 -----------------------------------------------------------------------------------------------
 
-Building a BVH is a little more complicated than using it. I mentioned previously that in a BVH, a
-node's bounding volume contains the objects of that node, including child nodes, if any, but
-otherwise has no relation to bounding volumes of sibling nodes. This makes it a little easier to
-build a BVH. For a good BVH, we'd also like to minimize the volume each node takes, and make
-bounding volumes of sibling nodes overlap less. We'll work on building a good BVH later. Starting
-with an array of triangles, we organize them into a tree, such that the bounding box of a node
-contains all down-tree triangles and bounding boxes.
+Building a BVH is just a little more complicated than using it. I mentioned previously that in a
+BVH, a node's bounding volume has no relation to bounding volumes of sibling nodes. This makes it a
+little easier to build a correct BVH. For a correct and good BVH, we'd also like to minimize the
+volume each node takes, and make bounding volumes of sibling nodes overlap less. We'll work on
+building a good BVH later. Starting with an array of triangles, we organize them into a tree, such
+that the bounding box of a node geometrically contains all down-tree triangles and bounding boxes.
 
-We start with a single BVH node that contains all triangles and build the tree by recursively
-splitting the node:
+We start with a single BVH node that conceptually contains all triangles. We build the tree by
+recursively splitting the node, until all nodes have the number of triangles below a threshold.
 
 - Pick a direction
 - Sort triangles along the picked direction
 - Split the array in the middle, giving each part to a newly created BVH node
 - Link the created BVH nodes to the parent
 - Recurse to both child nodes
-
-We stop recursing, if the number of triangles in our current node is below a threshold.
 
 (XXX: Audit/Compile/Run pseudocode, or cut it)
 ```
@@ -578,7 +575,7 @@ Now the our raytracer scales logarithmically with the size of the scene. However
 entered the land of computer science, we have temporarily lost our ability to utilize modern
 hardware, and have to do some thinking to recover it.
 
-# Raytracer Architecture, Main Course
+# Raytracer Architecture, Second Main Course
 
 While the raytracer now has good algorithmic scaling with the size of the scene, we are not
 utilizing any intra-core parallelism yet. Each ray has to traverse the BVH, test against the
@@ -685,7 +682,7 @@ Nodex8 :: struct {
 ```
 
 Once we reach the triangles stored in the leaf, going wide is fairly straightforward. When building
-the leaf node, instead of just copying in the triangles, we addionally make sure they come in
+the leaf node, instead of just copying in the triangles, we additionally make sure they come in
 multiples of the SIMD lane width. Assuming AVX, the number of triangles stored in a leaf has to be a
 multiple of 8. Well, actually, we can have any number of triangles in a leaf, but the storage will
 be rounded up to be a multiple of 8, and any leftover space has to be masked out.
@@ -703,11 +700,17 @@ TrianglePackx8 :: struct {
 ```
 
 Also, since we are now doing SIMD, we would like to leave our inefficient heterogeneous tree nodes
-behind. Our new BVH has two kinds of nodes, and they are both stored in their own array. The inner
-nodes contain the bounding boxes for their child nodes, and can point to other inner or leaf
-nodes. The leaf nodes only contain triangle data. (XXX: mention that this is for memory use mainly -
-cache use wouldn't necessarily be much worse if were careful about what we were loading). We encode
-the information about which array are wem going to be loading from in the index itself:
+behind. There's two problems with the heterogenous tree, the main one being the memory we have to
+load when we walk it. We want to make sure that when we load a node, each loaded byte in a cache
+line counts. Towards that end, we would like to have the nodes contain only what we need, align them
+to cache lines and make sure they do not straddle cache line boundaries. This is not impossible to
+do for the heterogenous tree, but it is simpler to think about when the two kinds of nodes are not
+stored in the same array. The second problem is wasted memory. This is not such a big deal today,
+but still it would be nice if we allocated only what we used.
+
+Our new BVH has two kinds of nodes, each stored in their own array. The inner nodes contain
+the bounding boxes for their child nodes, and can point to other inner or leaf nodes. The leaf nodes
+only contain triangle data.
 
 ```
 // 2:62     -> 2-bit tag + 62-bit index into the inner node array
@@ -723,7 +726,7 @@ TreeIndex :: struct {
 - SIMD box intersection
 - SIMD triangle intersection (maybe have to explain moller trumbore first?)
 
-# Dessert
+# Raytracer Architecture, Dessert
 
 - Naive triangle intersection -> Moller Trumbore
 - Pre-baked sphere rays.
