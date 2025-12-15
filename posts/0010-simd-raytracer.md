@@ -332,6 +332,7 @@ many assumptions and degrades gracefully with bad quality of input [bvh-generali
 
 [bvh-generality]: We didn't want to constrain the rest of what we are going to build by choosing an
 overly picky datastructure. This also helped us productize the daylighting evaluator later.
+
 # Raytracer Architecture, Still the Appetizer
 
 The BVH is a tree where each node has bounding volume geometrically containing the node's
@@ -345,16 +346,124 @@ necessarilly mutually exclusive.
 
 (XXX: Picture)
 
------------------------------------------------------------------------------------------------
-Ray tracing against a BVH boils down to a tree traversal. We test a ray against a node's bounding
-volume first, and if that intersects, we test against its contents. Once we get to a leaf node, we
-test our ray against the node's geometry, keeping track of the closest hit distance and normal, as
-we would in unaccelerated array approach above. Once we know the closest hit distance, it can help
-us eliminate entire branches of the tree, because we can skip over nodes not just when we miss their
+Testing rays against a BVH is not all that different to what we have been doing until now. We are
+still going to be keeping track of the closest hit, which can be one of the triangles in the leaf
+nodes. To get to those triangles, we first traverse the tree, testing against each node's bounding
+volume. However, we only visit child nodes, if the ray intersected with the parent node's
+volume. Once we get to a leaf node, we test our ray against the node's geometry, recording track of
+the closest hit distance and normal. Once we know the closest hit distance, we can use it to
+eliminate entire branches of the tree, because we can skip over nodes not just when we miss their
 bounding volume, but also if the distance to that bounding volume is greater than the recorded
-closest hit distance. For this reason (and others), it is worthwhile to traverse the tree depth
-first, so that we record our closest hit as soon as possible, eliminating further tests down the
-line.
+closest hit distance. It is worthwhile to traverse the tree depth first, so that we record our
+closest hit as soon as possible, eliminating further tests down the line.
+
+```
+Triangle :: struct {
+    v0: Vec3;
+    v1: Vec3;
+    V2: Vec3;
+}
+
+AABox :: struct {
+    min: Vec3;
+    max: Vec3;
+}
+
+Node :: struct {
+    bbox: AABox;
+
+    type: Node_Type;
+    data: Node_Data;
+
+    // This union is wasteful, but helps keep the pseudocode concise.
+    // In reality, we want to store inner nodes and leaves in separate arrays.
+    Node_Data :: union {
+        inner: Node_Inner;
+        leaf:  Node_Leaf;
+    }
+
+    Node_Type :: enum {
+        UNINITIALIZED :: 0;
+
+        INNER :: 1;
+        LEAF  :: 2;
+    }
+
+    Node_Inner :: struct {
+        left: s64;
+        right: s64;
+    }
+
+    Node_Leaf :: struct {
+        count: s64;
+        triangles: [LEAF_TRIANGLE_COUNT] Triangle;
+        materials: [LEAF_TRIANGLE_COUNT] Material;
+    }
+}
+
+BVH :: struct {
+    nodes: [..] Node;
+}
+
+raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
+    ray_origin    := primary_ray_origin;
+    ray_direction := primary_ray_direction;
+    ray_color     := Vec3.{ 1, 1, 1 };
+
+    for 0..max_bounces - 1 {
+        hit_distance: float32 = FLOAT32_MAX;
+        hit_normal:   Vec3;
+        hit_material: Material;
+
+        search_stack: [..] s64;
+
+        array_add(*search_stack, 0); // [0] is the root of the tree
+
+        while search_stack.count {
+            node_index := pop(*search_stack);
+            node := *bvh.nodes[node_index];
+
+            node_hit, node_distance, _ = ray_aabox_intersection(ray_origin, ray_direction, node.bbox);
+            if node_hit && node_distance < hit_distance {
+                if node.type == .INNER {
+                    array_add(*search_stack, node.inner.left);
+                    array_add(*search_stack, node.inner.right);
+                } else {
+                    for 0..node.leaf.count - 1 {
+                        triangle := node.leaf.triangles[it];
+                        hit, distance, normal := ray_triangle_intersection(ray_origin, ray_direction, triangle);
+                        if hit && distance < hit_distance {
+                            hit_distance = distance;
+                            hit_normal   = normal;
+                            hit_material = node.leaf.materials[it];
+                        }
+                    }
+                }
+            }
+        }
+
+        if hit_distance == FLOAT32_MAX {
+           // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
+           ray_color *= .{ 0.2, 0.1, 0.4 };
+           return ray_color;
+        }
+
+        if hit_material.type == .LIGHT_SOURCE {
+            ray_color *= hit_material.color;
+            return ray_color;
+        } else {
+            ray_color = attenuate(ray_color, ray_direction, hit_normal, hit_material);
+            ray_origin, ray_direction = bounce(ray_origin, ray_direction, hit_distance, hit_normal, hit_material);
+        }
+    }
+
+    // We ran out of bounces and haven't hit a light.
+    return .{ 0, 0, 0 };
+}
+
+```
+
+-----------------------------------------------------------------------------------------------
 
 Building a BVH is a little more complicated than using it. I mentioned previously that in a BVH, a
 node's bounding volume contains the objects of that node, including child nodes, if any, but
@@ -378,51 +487,7 @@ We stop recursing, if the number of triangles in our current node is below a thr
 
 (XXX: Audit/Compile/Run pseudocode, or cut it)
 ```
-Triangle :: struct {
-    v0: Vec3;
-    v1: Vec3;
-    V2: Vec3;
-}
-
-AABox :: struct {
-    min: Vec3;
-    max: Vec3;
-}
-
-Node :: struct {
-    bbox: AABox;
-
-    type: Node_Type;
-    data: Node_Data;
-
-    // This union is a little wasteful, but helps keep the pseudocode concise.
-    // In reality, we want to store inner nodes and leaves in separate arrays.
-    Node_Data :: union {
-        inner: Node_Inner;
-        leaf:  Node_Leaf;
-    }
-
-    Node_Type :: enum {
-        UNINITIALIZED :: 0;
-
-        INNER :: 1;
-        LEAF  :: 2;
-    }
-
-    Node_Inner :: struct {
-        left: s64;
-        right: s64;
-    }
-
-    Node_Leaf :: struct {
-        triangle_count: s64;
-        triangles: [LEAF_TRIANGLE_COUNT] Triangle;
-    }
-}
-
-BVH :: struct {
-    nodes: [..] Node;
-}
+// Struct definitions are the same as in previous listing.
 
 make_bvh :: (triangles: [] Triangle) -> BVH {
     bvh: BVH;
@@ -661,6 +726,8 @@ TreeIndex :: struct {
 - Pre-baked sphere rays.
 - SAH optimization (Credit DH)
 - targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
+- memory allocation: the only two places where a raytracer would allocate is the stack for
+  traversing the BVH and the job queue. Make sure to use cheap memory for both.
 
 # Future experiments
 
