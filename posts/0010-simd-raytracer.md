@@ -557,47 +557,52 @@ hardware, and have to do some thinking to recover it.
 -----------------------------------------------------------------------------------------------
 # Raytracer Architecture, Second Main Course
 
-While the raytracer now has good algorithmic scaling with the size of the scene, we are not
-utilizing any intra-core parallelism yet. Each ray has to traverse the BVH, test against the
-axis-aligned bounding boxes of its nodes, and for each leaf also test against each triangle, one by
-one.
+While the raytracer now has good scaling with the size of the scene, we are not utilizing any
+intra-core parallelism yet, which is a theoretical 4x/8x within reach, if we can grab it. Currently,
+each ray has to traverse the BVH, test against the axis-aligned bounding boxes of its nodes, and for
+each leaf also test against each triangle, one scalar operation after another.
 
-There's two general avenues we could explore from here, similar to the simple array architecture
-from earlier: parallelizing on rays, or parallelizing on geometry traversal.
+There's two general avenues of improvement we could explore from here, analogous to the simple array
+architecture from earlier: parallelizing on rays, or parallelizing on geometry traversal.
 
-Unfortunately, in 2023 I wasn't smart enough to figure out the ray-parallel version that included a
-BVH, and even today I am not sure it would work out all that well. My sketch version has several
-problems right off the bat. It would require SIMD gather, which is at least AVX2 on x64, and I am
-not even sure if the NEON equivalent exists. Moreover, the gather instructions would likely be doing
-loads from wildly different memory addresses (and cache lines), and they would still subject to
-physical limitations like memory bandwidth. On top of all that, we'd have maintain a traversal stack
-per SIMD lane... Seems troublesome.
+Unfortunately, in 2023 I wasn't smart enough to figure out the ray-parallel version that would also
+includ a BVH, and even today I am not sure it would work out all that well. My sketch version has
+several problems right off the bat. It would require SIMD gather, which is at least AVX2 on x64, and
+I am not even sure if the NEON equivalent exists. Moreover, the gather instructions would likely be
+doing loads from wildly different memory addresses (and cache lines), and they would still be
+subject to physical limitations like memory bandwidth. On top of all that, we'd have maintain a
+traversal stack per SIMD lane... Seems troublesome. This may still be possible, and if anyone
+actually did this, I'd love to know how it looks.
 
-So, instead we are going to go the obvious way, SIMD crunching multiple geometries against a single
-ray. While you can imagine how we'd SIMD-ify testing rays against triangles in leaf nodes, the more
-interesting part is applying SIMD to crunch through the BVH volumes. The most obvious challenge here
-is that the data is not even remotely organized to do this - the bounding boxes are stored in nodes
-of a binary tree, each node floating who knows where. However, what if we could reshape the tree
-such that it is essentially the same tree, but the bounding boxes we test against are laid out next
-to each other in memory?
+But instead we are going to go the obvious way, SIMD crunching multiple geometries against a single
+ray. While you can readily imagine how we'd SIMD-ify testing rays against triangles in leaf nodes,
+the more interesting part is applying SIMD to crunch through the bounding volumes. The most obvious
+challenge here is that the data is not even remotely organized to do this. The bounding boxes are
+stored in nodes of a binary tree, each node floating who knows where in memory. However, what if we
+could reshape the tree such that it is essentially the same tree, but the bounding boxes we test
+against are laid out next to each other in memory?
 
-In some sense, this is the core idea of the raytracer codebase (and this article). At that time I
-was happy that I came up with on my own, but in retrospect it looks fairly obvious, and cursory
-internet search says other people also do this [XXX: link to QBVH paper and AMD RDNA Chips & Cheese
-article].
+The transform we are going to do involves changing the tree's branching factor, as well as pulling
+the child nodes' bounding volumes into the parent node. In some sense, this is the core idea of the
+raytracer codebase (and this article). At that time I was happy that I came up with on my own, but
+it looks obvious in hindsight. Cursory internet search also says other people also do this
+[wide-bvh].
 
-However, before we get to that, there is one last piece of housekeeping to address. In the previous
-iteration, both types of BVH nodes were stored in a single array and we interpretted their contents
-based on the the type tag.
+[wide-bvh]: Chips & Cheese talks about AMD raytracing hardware having 8-wide BVH in this article:
+https://chipsandcheese.com/p/rdna-4s-raytracing-improvements. Also, this 2008 articles essentially
+talks about the same thing as we did: https://jo.dreggn.org/home/2008_qbvh.pdf.
+
+However, before we get to the exciting wide BVH, there is one last piece of housekeeping to
+address. In the previous version of the code, both types of BVH nodes were stored in a single array
+and we interpretted their contents based on the the type tag.
 
 Since we are about to do SIMD, we would like to leave the heterogeneous tree nodes behind. There's
-two problems with the heterogenous tree, the main one being the memory we have to load when we walk
-it. We want to make sure that when we load a node, each loaded byte in a cache line counts. Towards
-that end, we would like to have the nodes contain only what we need, align them to cache lines and
-make sure they do not straddle cache line boundaries. This is not impossible to do for the
-heterogenous tree, but it is simpler to think about when the two kinds of nodes are not stored in
-the same array. The second problem is wasted memory. This is not such a big deal today, but still it
-would be nice if we allocated only what we used.
+two problems with it, the main one being the memory we have to load when we walk it. We want to make
+sure that each loaded byte in a cache line counts. Towards that end, we would like to have the nodes
+contain only what we need, align them to cache lines and make sure they do not straddle cache line
+boundaries. This is not impossible to do for the heterogenous tree, but it is simpler to think about
+when the two kinds of nodes are not stored in the same array. The second problem is memory use. This
+is not such a big deal today, but still it would be nice if we allocated only what we used.
 
 Our new BVH has two kinds of nodes, each stored in their own array. The inner nodes contain indices
 that point into either inner nodes or leaf nodes. The leaf nodes only contain triangle and material
@@ -612,8 +617,8 @@ BVH :: struct {
 Inner_Node :: struct {
     bbox: AABox;
 
-    left: Tree_Index;
-    right: Tree_Index;
+    left: BVH_Index;
+    right: BVH_Index;
 }
 
 Leaf_Node :: struct {
@@ -621,56 +626,67 @@ Leaf_Node :: struct {
 
     count: s64;
     triangles: [LEAF_TRIANGLE_COUNT] Triangle;
-    materials: [LEAF_TRIANGLE_COUNT] Material; // XXX: Make sure to align the materials to a separate cache line.
+    materials: [LEAF_TRIANGLE_COUNT] Material; // For now the materials are along for the ride, but we'll store them on a cold cache line soon.
 }
 
-Tree_Index :: struct {
-    // 2:63 - 2 bits of tag to select the array, 62 bits to index into the array.
-    value: s64;
+BVH_Index :: struct {
+    // 2:62 - 2 bits of tag to select the array, 62 bits to index into the array.
+    value: u64;
 
-    TAG_NIL   :: 0;
-    TAG_INNER :: 1;
-    TAG_LEAF  :: 2;
+    TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
+    TAG_INNER: u64 : 1; // INNER indices point to the inner_nodes array.
+    TAG_LEAF:  u64 : 2; // LEAF indices point to the leaf_nodes array.
 }
 
-make_inner_node_index :: (index: s64) -> Tree_Index { return .{ (TAG_INNER << 62) | index }; }
-make_leaf_node_index  :: (index: s64) -> Tree_Index { return .{ (TAG_LEAF << 64 | index) }; }
+make_inner_node_index :: (index: s64) -> BVH_Index { return .{ (TAG_INNER << 62) | cast(u64, index) }; }
+make_leaf_node_index  :: (index: s64) -> BVH_Index { return .{ (TAG_LEAF << 62) | cast(u64, index) }; }
 ```
 
-Now we are ready.
+Now we are ready to make our BVH wide.
 
-From now on, the code snippets will target AVX hardware (8-wide), but we could just as well build
-SSE/NEON (4-wide) or AVX-512 (16-wide) versions of the data structures. In fact, at a later point in
-the article we talk about how we make sure multiple implementations exist side by side and produce
-the same results.
+From now on, the code snippets will target AVX hardware (8-wide), because the cache line math nicely
+works out in this case compared to 4-wide. We could just as well build SSE/NEON (4-wide) or AVX-512
+(16-wide) versions of the data structures. In fact, later in the article we talk about how we make
+multiple implementations exist side by side and produce the same results.
 
-The transform we are going to do involves changing the tree's branching factor, as well as pulling
-the child nodes' bounding volumes into the parent node [boundless-root]. When applied to the inner
-node, it looks like this:
+To make the BVH wide, we restructure it slightly. First imagine the node's bounding volume is not
+stored in the node itself, but its parent. For the tree root, we can either not have a bounding
+volume and say it is always reachable.
 
-[boundless-root]: This leaves the root of the tree without a bounding volume. We instead assume the
-root is always reached and test directly against children.
+```
+Inner_Node :: struct {
+    left_bbox:  AABox;
+    right_bbox: AABox;
+
+    left_index: BVH_Index;
+    right_index: BVH_Index;
+}
+
+```
+
+With nodes storing the bounding boxes of their child nodes, we now know whether our ray will hit
+those nodes before we visit them. More importantly, the bounding boxes are now packed tightly, and
+we could process them both at the same time. But why stop at two:
 
 ```
 Inner_Node_X8 :: struct {
-    // Bounding boxes for each child node
-    bbox0: AABox;
-    bbox1: AABox;
-    bbox2: AABox;
-    bbox3: AABox;
-    bbox4: AABox;
-    bbox5: AABox;
-    bbox6: AABox;
-    bbox7: AABox;
+    child_bbox0: AABox;
+    child_bbox1: AABox;
+    child_bbox2: AABox;
+    child_bbox3: AABox;
+    child_bbox4: AABox;
+    child_bbox5: AABox;
+    child_bbox6: AABox;
+    child_bbox7: AABox;
 
-    child0: Tree_Index;
-    child1: Tree_Index;
-    child2: Tree_Index;
-    child3: Tree_Index;
-    child4: Tree_Index;
-    child5: Tree_Index;
-    child6: Tree_Index;
-    child7: Tree_Index;
+    child_index0: BVH_Index;
+    child_index1: BVH_Index;
+    child_index2: BVH_Index;
+    child_index3: BVH_Index;
+    child_index4: BVH_Index;
+    child_index5: BVH_Index;
+    child_index6: BVH_Index;
+    child_index7: BVH_Index;
 }
 ```
 
@@ -700,8 +716,9 @@ Inner_Node_X8 :: struct {
 +----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
 ```
 
-To properly SIMD-ify these, we just need to make sure everything is aligned properly. The final
-version of the wide node will look like this:
+All that's left to vectorize these is to align stuff. We might as well factor out the 8-wide
+axis-aligned box type, since that is what our intersection routine will be operating one. The final
+version of the wide node:
 
 ```
 AABox_Pack_X8 :: struct {
@@ -709,46 +726,164 @@ AABox_Pack_X8 :: struct {
     max: Vec3x8;
 }
 
+// The node is aligned to the x64 cache line size, and spans 4 cache lines.
 Inner_Node_X8 :: struct {
-    aabox: AABox_Pack_X8;
-    children: [8] Tree_Index;
+    // Hot, 3 cache lines
+    aabox_pack: AABox_Pack_X8;
+    // Also kind of hot, but possibly less so, 1 cache line
+    children: [8] BVH_Index;
 }
 ```
 
-Naturally, we'll need to adjust both the code that builds the tree and the code that traverses it.
-
-The build code is fairly boring, but also quite verbose (so no pseudocode this time). The
-maybe_split function now splits the node 8-way. It does this by first splitting the triangles into
-two groups, then splitting those into four, and finally splitting those once again. It computes a
-bounding box for each group of triangles and writes it in the current node. When there isn't enough
-triangles to split 8-way, some bounding boxes are going to be empty (zero-dimensional bounding boxes
-located at zero), and their corresponding indices will be NIL, just in case.
-
-(XXX: HERE traversing pseudocode, including wide intersection routine)
-
-Once we crunch through the tree and reach the triangles stored in the leaf, going wide is fairly
-straightforward. When building the leaf node, instead of just copying in the triangles, we
-additionally make sure they come in multiples of the SIMD lane width. Assuming AVX, the number of
-triangles stored in a leaf has to be a multiple of 8. Well, actually, we can have any number of
-triangles in a leaf, but the storage will be rounded up to be a multiple of 8, and any leftover
-space has to be masked out.
+With the 8-wide bounding box, we need a new intersection function, but the interface is similar:
 
 ```
-// Eight triangles, one struct.
-// The struct is aligned to the x64 cache line size, and takes up 5 cache lines.
-TrianglePackx8 :: struct {
+// Implementation in the dessert chapter.
+SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_distance: float32x8, hit_normal: Vec3x8;
+```
+
+Once we crunch through the tree and reach the triangles stored in the leaf, going wide is fairly
+straightforward. One slight subtlety is that instead of count, we are going to have a wide mask
+instead, which nicely pads the memory to 5 cache lines. The structs defining the leaf node look like
+this:
+
+```
+Leaf_Node_X8 :: struct {
+    // Hot, 5 cache lines
+    triangle_pack: Triangle_Pack_X8;
+    triangle_mask: u32x8;
+
+    // Cold, 2 cache lines (for our simple material). We could also store materials out of band.
+    materials: [8] Material;
+}
+
+Triangle_Pack_X8 :: struct {
     v0: Vec3x8;    #align 64;
     v1: Vec3x8;
     v2: Vec3x8;
-
-    mask: u32x8;
 }
 ```
 
-- Wide BVH: the array of box packs and the array of triangle packs
+Note that we have lost the ability to configure leaf heaviness with LEAF_TRIANGLE_COUNT, but you can
+imagine a modification where the BVH_Index pointing into inner_nodes has a 2:31:31 structure,
+allowing us to index a span of leaf nodes. Now, as long as our LEAF_TRIANGLE_COUNT is a multiple of
+8, we can once again say how deep or heavy the tree is.
+
+```
+BVH_Index :: struct {
+    // 2 bits of tag to select the array.
+    // If indexing into inner nodes, 62 bits of index.
+    // If indexing into leaf nodes, 2*31 bits of index (start and end indices, end is end-exclusive)
+    value: u64;
+
+    TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
+    TAG_INNER: u64 : 1; // INNER indices point to the inner_nodes array.
+    TAG_LEAF:  u64 : 2; // LEAF indices point to the leaf_nodes array.
+}
+
+make_inner_node_index :: (index: s64) -> BVH_Index { return .{ (TAG_INNER << 62) | cast(u64, index) }; }
+make_leaf_node_index  :: (start: s64, end: s64) -> BVH_Index { return .{ (TAG_LEAF << 62) | cast(u32, start) << 31 | cast(u32, end) }; }
+
+```
+
+Now that we defined the new structure of the tree, we need to adjust both the code that builds the
+tree and the code that traverses it.
+
+The build code is fairly boring, but also verbose, so I won't write it out in pseudocode this
+time. The new build function has to split nodes 8-way. It does this by doing multiple splits for
+each node, first splitting the triangles into two groups, then splitting those into four, and
+finally splitting those once again. It computes a bounding box for each group of triangles and
+writes it in the current node. Something that couldn't have happened for regular BVHs, but often
+happens for wide BVHs is not having enough triangles for the 8-way split. When this happens, some
+bounding boxes are going to be empty (zero size, positioned at zero), and their corresponding
+indices will have the TAG_NIL. Empty bounding boxes will be intersected by rays, and just in case we
+made an error, the TAG_NIL tells us we can not follow through that index.
+
+We can, however, write out the pseudocode for traversing the wide BVH:
+
+```
+raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
+    ray_origin    := primary_ray_origin;
+    ray_direction := primary_ray_direction;
+    ray_color     := Vec3.{ 1, 1, 1 };
+
+    for 0..max_bounces - 1 {
+        hit_distance: float32 = FLOAT32_MAX;
+        hit_normal:   Vec3;
+        hit_material: Material;
+
+        search_stack: [..] BVH_Index;
+
+        array_add(*search_stack, make_inner_node_index(0)); // [0] is the root of the tree
+
+        while search_stack.count {
+            node_index := pop(*search_stack);
+
+            node_tag, node_i0, node_i1 := decomp_node_index(node_index); // XXX: Give source code
+            if node_tag == {
+                case BVH_Index.TAG_INNER; {
+                    inner := *bvh.inner_nodes[node_i0];
+
+                    // XXX: HERE Finish the inner node case.
+                }
+
+                case BVH_Index.TAG_LEAF; {
+                    for node_i0..node_i1 - 1 {
+                        leaf := *bvh.leaf_nodes[it];
+
+                        // XXX: The normal is actually not a sideproduct of the intersection code. Compute it here.
+                        distance_x8, normal_x8 := SIMD_ray_triangle_intersection(ray_origin, ray_direction, leaf.triangle_pack);
+
+                        mask_x8 := leaf.triangle_mask;
+                        mask_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
+
+                        if SIMD_mask_is_zeroed(mask_x8) {
+                            continue;
+                        }
+
+                        distance_min_x8 := SIMD_select(mask_x8, distance, SIMD_splat(FLOAT32_MAX));
+                        distance_min    := SIMD_horizontal_min(distance_min_x8);
+
+                        if distance_min < hit_distance {
+                            // TODO(jt): @Cleanup @Speed Is there a better way of extracting the index? SIMD Bit_Scan?
+                            closest_index: s64;
+                            for distance: distance_min_x8 {
+                                if distance == distance_min {
+                                    closest_index = it_index;
+                                    break;
+                                }
+                            }
+
+                            hit_distance = distance_min;
+                            hit_normal   = SIMD_extract(normal_x8, closest_index);
+                            hit_material = leaf.materials[closest_index];
+                        }
+                    }
+                }
+            }
+        }
+
+        if hit_distance == FLOAT32_MAX {
+           // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
+           ray_color *= .{ 0.2, 0.1, 0.4 };
+           return ray_color;
+        }
+
+        if hit_material.type == .LIGHT_SOURCE {
+            ray_color *= hit_material.color;
+            return ray_color;
+        } else {
+            ray_color = attenuate(ray_color, ray_direction, hit_normal, hit_material);
+            ray_origin, ray_direction = bounce(ray_origin, ray_direction, hit_distance, hit_normal, hit_material);
+        }
+    }
+
+    // We ran out of bounces and haven't hit a light.
+    return .{ 0, 0, 0 };
+}
+```
+
 - Wide BVH also means less pointers, so it is smaller.
-- SIMD box intersection
-- SIMD triangle intersection (maybe have to explain moller trumbore first?)
 
 # Raytracer Architecture, Dessert
 
