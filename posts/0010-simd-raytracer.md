@@ -276,7 +276,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
     return .{ 0, 0, 0 };
 }
 
-// We'll define some of these later.
+// We'll define some of these later. For now note that the interface is roughly as written here.
 ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
@@ -387,10 +387,8 @@ Node :: struct {
     }
 
     Node_Type :: enum {
-        UNINITIALIZED :: 0;
-
-        INNER :: 1;
-        LEAF  :: 2;
+        INNER :: 0;
+        LEAF  :: 1;
     }
 
     Node_Inner :: struct {
@@ -465,6 +463,11 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
     return .{ 0, 0, 0 };
 }
 
+// We'll define some of these later. For now note that the interface is roughly as written here.
+ray_aabox_intersection    :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle: Triangle) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
+bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
 ```
 
 Building a BVH is just a little more complicated than using it. I mentioned previously that a node's
@@ -480,7 +483,7 @@ contain is below a predefined threshold.
 ```
 // Struct definitions are the same as in previous listing.
 
-make_bvh :: (triangles: [] Triangle) -> BVH {
+make_bvh :: (_triangles: [] Triangle) -> BVH {
     bvh: BVH;
     array_add(*bvh.nodes);
 
@@ -490,97 +493,68 @@ make_bvh :: (triangles: [] Triangle) -> BVH {
     }
 
     stack: [..] Frame;
-    array_add(*stack, .{ 0, triangles });
+    array_add(*stack, .{ 0, _triangles });
 
     while stack.count {
         frame := pop(*stack);
 
-        was_split, split := maybe_split(frame.node_index, frame.triangles, *bvh);
-        if was_split {
-            array_add(*stack, .{ split.left_index, split.left_triangles });
-            array_add(*stack, .{ split.right_index, split.right_triangles });
+        node_index := frame.node_index;
+        triangles  := frame.triangles;
+
+        node := *bvh.nodes[node_index];
+
+        if triangles.count <= LEAF_TRIANGLE_COUNT {
+            node.bbox = aabox_from_triangles(triangles);
+            node.type = .LEAF;
+
+            node.leaf.triangle_count = triangles.count;
+            array_view_copy(*node.leaf.triangles, triangles, triangles.count);
+        } else {
+            left_index  := bvh.nodes.count;
+            right_index := bvh.nodes.count + 1;
+
+            array_add(*bvh.nodes);
+            array_add(*bvh.nodes);
+
+            node.bbox = aabox_from_triangles(triangles);
+            node.type = .INNER;
+
+            node.inner.left  = left_index;
+            node.inner.right = right_index;
+
+            size_x := node.bbox.max.x - node.bbox.min.x;
+            size_y := node.bbox.max.y - node.bbox.min.y;
+            size_z := node.bbox.max.z - node.bbox.min.z;
+
+            // We compare one of the triangle points, but we could also compare centroids.
+            compare_x :: (a: Triangle, b: Triangle) -> float32 { return a.v0.x - b.v0.x; }
+            compare_y :: (a: Triangle, b: Triangle) -> float32 { return a.v0.y - b.v0.y; }
+            compare_z :: (a: Triangle, b: Triangle) -> float32 { return a.v0.z - b.v0.z; }
+
+            if size_x > size_y && size_x > size_z {
+                quick_sort(triangles, compare_x);
+            } else if size_y > size_z {
+                quick_sort(triangles, compare_y);
+            } else {
+                quick_sort(triangles, compare_z);
+            }
+
+            left_triangles, right_triangles := split_array_view(triangles, triangles.count / 2);
+
+            array_add(*stack, .{ left_index, left_triangles });
+            array_add(*stack, .{ right_index, right_triangles });
         }
     }
 
     return bvh;
 }
-
-Split :: struct {
-    left_index:      s64;
-    left_triangles:  [] Triangle;
-    right_index:     s64;
-    right_triangles: [] Triangle;
-}
-
-maybe_split :: (node_index: s64, triangles: [] Triangle, bvh: *BVH) -> was_split: bool, split: Split {
-    LEAF_TRIANGLE_COUNT :: 16;
-
-    if triangles.count <= LEAF_TRIANGLE_COUNT {
-        node := *bvh.nodes[node_index];
-        node.bbox = aabox_from_triangles(triangles);
-        node.type = .LEAF;
-
-        node.leaf.triangle_count = triangles.count;
-        array_view_copy(*node.leaf.triangles, triangles, triangles.count);
-
-        return false, .{};
-    } else {
-        left_index  := bvh.nodes.count;
-        right_index := bvh.nodes.count + 1;
-
-        array_add(*bvh.nodes);
-        array_add(*bvh.nodes);
-
-        node := *bvh.nodes[node_index];
-        node.bbox = aabox_from_triangles(triangles);
-        node.type = .INNER;
-
-        node.inner.left  = left_index;
-        node.inner.right = right_index;
-
-        size_x := node.bbox.max.x - node.bbox.min.x;
-        size_y := node.bbox.max.y - node.bbox.min.y;
-        size_z := node.bbox.max.z - node.bbox.min.z;
-
-        // We compare one of the triangle points, but we could also compare centroids.
-        compare_x :: (a: Triangle, b: Triangle) -> float32 { return a.v0.x - b.v0.x; }
-        compare_y :: (a: Triangle, b: Triangle) -> float32 { return a.v0.y - b.v0.y; }
-        compare_z :: (a: Triangle, b: Triangle) -> float32 { return a.v0.z - b.v0.z; }
-
-        if size_x > size_y && size_x > size_z {
-            quick_sort(triangles, compare_x);
-        } else if size_y > size_z {
-            quick_sort(triangles, compare_y);
-        } else {
-            quick_sort(triangles, compare_z);
-        }
-
-        left_triangles, right_triangles = split_array_view(triangles, triangles.count / 2);
-
-        return true, .{ left_index, left_triangles, right_index, right_triangles };
-    }
-}
 ```
-
------------------------------------------------------------------------------------------------
-
-(XXX: This is too late to be explaining the intersection math. Explain or link to external explanation in the appetizer?)
-
-The only important missing piece now is the math to compute the bbox-ray and triangle-ray
-intersections. A branchless version of the former is called "the slab method" [aabox-intersection],
-and the latter is named after its authors [moller-trumbore]. The branchless property is going to be
-useful in a bit.
-
-[aabox-intersection]: The slab method is neatly explained at
-https://tavianator.com/2022/ray_box_boundary.html.
-
-[triangle-intersection]: The ray-triangle intersection routine can be found on wikipedia:
-https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
 Now the our raytracer scales logarithmically with the size of the scene. However, as we naively
 entered the land of computer science, we have temporarily lost our ability to utilize modern
 hardware, and have to do some thinking to recover it.
 
+-----------------------------------------------------------------------------------------------
 # Raytracer Architecture, Second Main Course
 
 While the raytracer now has good algorithmic scaling with the size of the scene, we are not
@@ -778,13 +752,15 @@ TrianglePackx8 :: struct {
 
 # Raytracer Architecture, Dessert
 
-- Naive triangle intersection -> Moller Trumbore
-- Pre-baked sphere rays.
+- Explain the slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
+- Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 - SAH optimization (Credit DH)
 - targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
-- making sure the multiple backends return the same results -> tree structure must be the same
-- memory allocation: the only two places where a raytracer would allocate is the stack for
-  traversing the BVH and the job queue. Make sure to use cheap memory for both.
+- making sure the multiple backends return the same results -> tree structure must be the same, FMA
+  must be either forced or disallowed for all backends
+- threading: job per light probe (~thousands of rays)
+- memory allocation: in what places does a raytracer allocate? how can we make the allocation cheap?
+- Pre-baked sphere rays.
 
 # Future experiments
 
