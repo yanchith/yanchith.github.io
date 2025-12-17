@@ -962,10 +962,24 @@ also true for a large scene (400 megabytes of BVH), which I admit is a little st
 the difference between L3 and main memory to be more pronounced. Perhaps I should craft a scene that
 would fit the L1 or L2 to see if anything changes.
 
-- Try explaining diminishing returns.
-- Wide BVH also means less pointers, so it is smaller.
+I want to end on one obvious benefit and less obvious drawback of the wide BVH, which might even
+partially explain the diminishing returns in speed observed above. Let's start with the good. The
+wider your BVH, the less nodes you have, and thus less bounding boxes and less indices. This is a
+good thing, and on the extreme, it might even help and push your scene into a better cache class
+(e.g. L3 -> L2), apart from improving the memory footprint.
+
+The bad news is, the fatter your nodes, the more memory bandwidth is required to load each one. The
+8-wide nodes occupy four x64 cache lines. 16-wide nodes would have been eight cache lines. This
+starts becoming a problem, if most of your intersection tests fail (which most of them should, if
+your BVH is good). You loaded all those boxes, only to to realize that the ray does not intersect
+them. To measure the impact here, we could instrument the code with a metric of average read cache
+lines per bounce. We'd likely see that the wider we go, the worse that metric becomes, eventually
+making negating the benefits of the wide traversal. (TODO(jt): I haven't actually done this, so
+maybe I should, before I say untrue things.)
 
 # Raytracer Architecture, Dessert
+
+This section is not yet written. I want to talk about these miscelleanous things in it:
 
 - Explain the slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
 - Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -975,7 +989,7 @@ would fit the L1 or L2 to see if anything changes.
 - making sure the multiple backends return the same results -> tree structure must be the same, FMA
   must be either forced or disallowed for all backends
 - threading: job per light probe (~thousands of rays)
-- memory allocation: in what places does a raytracer allocate? how can we make the allocation cheap?
+- memory allocation: in what places does a raytracer allocate? how can we make the allocation cheap (on stack arrays, memory arenas).
 - Pre-baked sphere rays.
 
 # Future experiments
