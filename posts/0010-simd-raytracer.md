@@ -640,8 +640,21 @@ BVH_Index :: struct {
     TAG_LEAF:  u64 : 2; // LEAF indices point to the leaf_nodes array.
 }
 
-make_inner_node_index :: (index: s64) -> BVH_Index { return .{ (TAG_INNER << 62) | cast(u64, index) }; }
-make_leaf_node_index  :: (index: s64) -> BVH_Index { return .{ (TAG_LEAF << 62) | cast(u64, index) }; }
+compose_inner_node_index :: (index: s64) -> BVH_Index {
+    return .{ (TAG_INNER << 62) | cast(u64, index) };
+}
+
+compose_leaf_node_index :: (index: s64) -> BVH_Index {
+    return .{ (TAG_LEAF << 62) | cast(u64, index) };
+}
+
+decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index: s64 {
+    MASK: u64 : (1 << 62) - 1;
+
+    tag   := bvh_index.value >> 62;
+    index := cast(s64, MASK & bvh_index.value);
+    return tag, index;
+}
 ```
 
 Now we are ready to make our BVH wide.
@@ -737,15 +750,15 @@ Inner_Node_X8 :: struct {
     // Hot, 3 cache lines
     aabox_pack: AABox_Pack_X8;
     // Also likely hot, 1 cache line
-    children: [8] BVH_Index;
+    child_indices: [8] BVH_Index;
 }
 ```
 
 With the 8-wide bounding box, we need a new intersection routine, but the interface is similar:
 
 ```
-// Implementation in the dessert chapter.
-SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8, hit_normal: Vec3x8;
+// Implementation in the dessert chapter. Also notice we are not returning the hit normal, becuase we won't be needing it.
+SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8;
 ```
 
 Compared to organizing the tree for SIMD, once we crunch through the tree and reach the triangles
@@ -768,6 +781,13 @@ Triangle_Pack_X8 :: struct {
     v1: Vec3x8;
     v2: Vec3x8;
 }
+```
+
+Analogously to bounding boxes, we also need a new math routine for triangles:
+
+```
+// Implementation in the dessert chapter.
+SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle_pack: Triangle_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8, hit_normal: Vec3x8;
 ```
 
 Note that right now we can not configure leaf heaviness with LEAF_TRIANGLE_COUNT, so let's restore
@@ -797,8 +817,29 @@ BVH_Index :: struct {
     TAG_LEAF:  u64 : 2; // LEAF indices point to the leaf_nodes array.
 }
 
-make_inner_node_index :: (index: s64) -> BVH_Index { return .{ (TAG_INNER << 62) | cast(u64, index) }; }
-make_leaf_node_index  :: (start: s64, end: s64) -> BVH_Index { return .{ (TAG_LEAF << 62) | cast(u32, start) << 31 | cast(u32, end) }; }
+compose_inner_node_index :: (index: s64) -> BVH_Index {
+    return .{ (TAG_INNER << 62) | cast(u64, index) };
+}
+
+compose_leaf_node_index :: (start: s64, end: s64) -> BVH_Index {
+    return .{ (TAG_LEAF << 62) | cast(u32, start) << 31 | cast(u32, end) };
+}
+
+decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index0: s64, index1: s64 {
+    INNER_MASK: u64 : (1 << 62) - 1;
+    LEAF_MASK:  u64 : (1 << 31) - 1;
+
+    tag   := bvh_index.value >> 62;
+
+    inner_index := cast(s64, INNER_MASK & bvh_index.value);
+    leaf_start  := cast(s64, LEAF_MASK & (bvh_index.value >> 31));
+    leaf_end    := cast(s64, LEAF_MASK & bvh_index.value);
+
+    index0 := ifx tag == TAG_LEAF then leaf_start else inner_index;
+    index1 := ifx tag == TAG_LEAF then leaf_end   else 0;
+
+    return tag, index0, index1;
+}
 
 ```
 
@@ -831,17 +872,24 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 
         search_stack: [..] BVH_Index;
 
-        array_add(*search_stack, make_inner_node_index(0)); // [0] is the root of the tree
+        array_add(*search_stack, compose_inner_node_index(0)); // [0] is the root of the tree
 
         while search_stack.count {
             node_index := pop(*search_stack);
 
-            node_tag, node_i0, node_i1 := decomp_node_index(node_index); // XXX: Give source code
+            node_tag, node_i0, node_i1 := decompose_node_index(node_index);
             if node_tag == {
                 case BVH_Index.TAG_INNER; {
                     inner := *bvh.inner_nodes[node_i0];
 
-                    // XXX: HERE Finish the inner node case.
+                    hit_x8, distance_x8 := SIMD_ray_aabox_intersectoin(ray_origin, ray_direction, inner.aabox_pack);
+                    hit_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
+
+                    for hit: hit_x8 {
+                        if hit {
+                            array_add(*search_stack, inner.child_indices[it_index]);
+                        }
+                    }
                 }
 
                 case BVH_Index.TAG_LEAF; {
@@ -849,13 +897,12 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
                         leaf := *bvh.leaf_nodes[it];
 
                         // The normal is actually not a sideproduct of the intersection code for triangles
-                        // (Moller-Trumbore), and we wouldn't compute it eagerly, but do so to simplify
-                        // the code here.
+                        // (Moller-Trumbore), and we wouldn't normally compute it eagerly, but do so to
+                        // simplify the code.
                         hit_x8, distance_x8, normal_x8 := SIMD_ray_triangle_intersection(ray_origin, ray_direction, leaf.triangle_pack);
 
-                        mask_x8 := leaf.triangle_mask;
-                        mask_x8 &= hit_x8;
-                        mask_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
+                        hit_x8 &= leaf.triangle_mask;
+                        hit_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
 
                         if SIMD_mask_is_zeroed(mask_x8) {
                             continue;
@@ -915,6 +962,7 @@ also true for a large scene (400 megabytes of BVH), which I admit is a little st
 the difference between L3 and main memory to be more pronounced. Perhaps I should craft a scene that
 would fit the L1 or L2 to see if anything changes.
 
+- Try explaining diminishing returns.
 - Wide BVH also means less pointers, so it is smaller.
 
 # Raytracer Architecture, Dessert
@@ -922,6 +970,7 @@ would fit the L1 or L2 to see if anything changes.
 - Explain the slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
 - Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 - SAH optimization (Credit DH)
+- Sort bounding boxes before pushing on stack.
 - targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
 - making sure the multiple backends return the same results -> tree structure must be the same, FMA
   must be either forced or disallowed for all backends
