@@ -6,8 +6,8 @@ book series (https://raytracing.github.io/). For computer knowledge, my long-for
 the patient viewer is Casey Muratori's Handmade Hero (https://guide.handmadehero.org/) and Computer
 Enhance (https://computerenhance.com) series.
 
-If, on the other hand, you would like to skip over to "the good part", you can go to Raytracer
-Architecture, Second Main Course.
+If, on the other hand, you would like to skip over to "the good part", you can go to the section
+Raytracer Architecture, Second Main Course.
 
 The article stems from work I did in early 2023. As of the time of writing (December 2025), that
 work is still the most focused nugget of technical work I have done. This was quite the luxury for
@@ -20,20 +20,20 @@ have made the results better. I'd be happy to receive your email with any feedba
 
 Now, before we get to the core of the problem, here's the last bit of context. In early 2023, a
 startup company I worked for was about to get funding, and we wanted to warm up the programming team
-on a thing we knew we are going to need, before fanning out and developing the rest. The goal of the
+on a thing we knew we are going to need before fanning out and developing the rest. The goal of the
 company was to give real estate developers tools to procedurally generate housing architecture. This
 housing was supposed to meet the developer's criteria, such as yields, mix of functions and
 apartment sizes, aesthetics, as well as spatial instructions (e.g. build here but not there, build
 in this shape...). We assumed that to generate the architecture, there would be a computer learning
 process. As it is with learning processes, they need to get feedback on their results from one
 iteration that can be fed into the next, gradually improving the results. Architecture is a very
-high-dimensional problem space. A house is definitely not just any "house shaped" geometry, and
+high-dimensional problem space. A house is definitely not just any house shaped geometry, and
 before we even enter the realm of architecture, there's structural engineering, business, regulatory
 and legal criteria that a house must satisfy. For such a tall order, we assumed that even a smartly
 designed learning algorithm will have to do many iterations, getting feedback from a myriad of
 evaluators (structural, sunlight/daylight, accoustic, business, legal) until it reaches a solution.
 
-(TODO(jt): Include GIF here?)
+(XXX: GIF)
 
 So we generate stuff, evaluate, generate new stuff, evaluate, and so on, until eventually we stop
 after either all criteria are satisfied, no significant improvement can be found, or we exceeded our
@@ -85,21 +85,21 @@ do that by simulating paths that light could have taken through the scene from a
 reach our point. Such paths can be either direct, or include one or more bounces from objects in the
 scene. However, we are often interested in light reaching just a few select points in space, like
 the chip of our digital camera. Compared to all the places the light can go, light rays have only a
-miniscule chance of reaching the points we are interested in, directly or via bounces. We would have
-to shoot a lot of rays from light sources for them to trickle down to our measurement points in
-sufficient quantities.
+miniscule chance of reaching the points we are interested in, directly or via bounces. In other
+words, we would have to shoot a lot of rays from light sources for them to trickle down to our
+measurement points in sufficient quantities.
 
 (XXX: Picture)
 
 Instead, we lean on laws of the universe regarding (the absence of) the arrow of time for the
 behavior of particles. If we were shown a movie of elementary particles moving through space,
-sometimes colliding with each other, we would have a hard time telling whether the movie is playing
-forward or backward. This is because it is impossible to tell - they follow the same rules whether
-they are moving forward or backward in time, and it is only possible to discern the direction of
-time once we have a large number of particles and probability enters the picture, pushing particles
-towards states with high entropy [probability]. For us, this means that if we have a path between a
-measurement point and a light source, a photon could have taken that exact path in both directions
-[oversimplification].
+perhaps sometimes colliding with each other, we would have a hard time telling, whether the movie is
+playing forward or backward. This is because it is impossible to tell - they follow the same rules
+whether they are moving forward or backward in time, and it is only possible to discern the
+direction of time once we have a large number of particles and probability enters the picture,
+pushing particles towards states with high entropy [probability]. For us, this means that if we have
+a path between a measurement point and a light source, a photon could have taken that exact path in
+both directions [oversimplification].
 
 [probability]: The fundamental laws for particles do not change when there's many of them. The
 probabilistic behavior arises from our inability to keep track large data, leading us to reason
@@ -111,13 +111,12 @@ is a grain of truth in this model, and imagining photons as "zillions of bouncin
 doesn't disrupt our high level simulation.
 
 The implication of bidirectionality for our simulation is that we can trace rays in reverse: from
-the relatively few points we are interested in towards light sources. For infinite number of rays
-the we would have reached the same answer either way, but with our finite limitations, we have
-higher chance of sucessfully completing the path between the light source and the camera going
-backwards [big-lights]. With both forward and reverse raytracing, we keep track of how much energy
-we loose with each bounce. Because these energy losses (also called attenuation) multiply, and
-multiplication is commutative, this works out the same regardless of the direction we trace the ray
-in.
+the relatively few points we are interested in towards light sources. For infinite number of rays we
+would have reached the same answer either way, but with our finite limitations, we have higher
+chance of sucessfully completing the path between the light source and the camera going backwards
+[big-lights]. With both forward and reverse raytracing, we keep track of how much energy we lose
+each bounce. Because these energy losses (also called attenuation) multiply, and multiplication is
+commutative, this works out the same regardless of the direction we trace the ray in.
 
 [big-lights]: Because light sources are usually bigger than our camera, and even if the ray escapes
 the scene, we can sample a background skybox to get some ambient value of light.
@@ -137,26 +136,26 @@ measured by putting the material in a Gonioreflectometer.
 [anisotropy]: For instance, the BRDF for animal fur behaves differently for various orientations of
 the incoming and outgoing rays relative to the surface.
 
-[MERL]: For instance, see the MERL library of materials:
-https://www.merl.com/research/downloads/BRDF
+[MERL]: An example is the MERL library of materials: https://www.merl.com/research/downloads/BRDF
 
 If the ray hits a light source, it ends its journey. We read the light's value and apply the
 attenuation the ray has accumulated when bouncing off of materials along its path. Because each
 bounce attenuates the ray, we also can decide to terminate the ray early after a certain amount of
-bounces, as even if it did reach a light source eventually, the light's contribution through that
-particular ray would have been close to zero. (XXX: Include this in the picture above?)
+bounces, because even if it did reach a light source eventually, the light's contribution through
+that particular ray would have been close to zero. (XXX: Include this in the picture above?)
 
 Hopefully multiple rays shot from our camera reach light sources. We compute the light value
 reaching the camera's pixel as the sum of the individual ray contributions divided by the number of
 cast rays. Because scenes are not always well lit, it may take a lot of rays for us to form a
 coherent picture of what the scene looks like from the perspective of the camera. Low light scenes
 are prone to noise, when various neighboring pixels in the camera collect dramatically different
-values of light. As the number of rays increases to infinity, the noise becomes weaker, but because
-a large number of rays is not always practical, we often employ denoising algorithms that
-reconstruct information from noisy pictures. Denoising is an important part of modern raytracing,
-because it lets us spend a fixed cost to substantially improve the result quality that would
-otherwise have to be improved by shooting unreasonable amounts of rays. It might have also been
-useful in our usecase [half-spherical-probes], but we simply didn't have the time to pursue it.
+values of light due to randomness of bounces. As the number of rays increases to infinity, the noise
+becomes weaker, but because a large number of rays is not always practical, we often employ
+denoising algorithms that reconstruct information from noisy pictures. Denoising is an important
+part of modern raytracing, because it lets us spend a fixed cost to substantially improve the result
+quality that would otherwise have to be improved by shooting unreasonable amounts of rays. It might
+have also been useful in our usecase [half-spherical-probes], but we simply didn't have the time to
+pursue it.
 
 [half-spherical-probes]: Thinking back, denoising would have been interesting for us, because our
 raytracer collected light in half-sphere shaped light probes, so essentially we would have been
@@ -176,7 +175,8 @@ it fits in pseudocode.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
 geometries, e.g. ray and sphere. The solve provides us with both the distance to the intersection
-point and the normal of the intersected surface, both of which we need to procede.
+point and the normal of the intersected surface, both of which we need to procede. The math and code
+for these is delayed until the section Raytracer Architecture, Dessert.
 
 ```
 Sphere :: struct {
@@ -259,7 +259,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
 
         if hit_distance == FLOAT32_MAX {
            // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
-           ray_color *= .{ 0.2, 0.1, 0.4 };
+           ray_color *= { 0.2, 0.1, 0.4 };
            return ray_color;
         }
 
@@ -273,10 +273,10 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
     }
 
     // We ran out of bounces and haven't hit a light.
-    return .{ 0, 0, 0 };
+    return { 0, 0, 0 };
 }
 
-// We'll define some of these later. For now note that the interface is roughly as written here.
+// We'll define some of these later. For now note that the interface is roughly this.
 ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
@@ -288,26 +288,26 @@ Before addressing the elephant in the room and moving on from this approach, I w
 of its benefits.
 
 Firstly, this code listing is almost all there is to it! You have the arrays of objects, and you
-loop over them. Or, if you don't have data in the exact right shape, you can organize it
-easily. This is not going to be true for the later, more sophisticated designs. There is beauty in
-simplicity.
+loop over them. Or, if you don't have data in the exact right shape, you can organize it into those
+arrays easily. This is not going to be true for the later, more sophisticated designs. There is
+beauty in simplicity.
 
 Another virtue of the scene laid out in arrays is that the resulting code is very straightforward to
 optimize. We can very easily start thinking about packing the arrays such that each cache line of
 geometry we load is not going to be wasted [memory].
 
 [memory]: For most software, the major source of slowness is getting data from memory to the
-CPU. Architecting programs such that we only load things we need, and do not load things we do not
-need can lead to significant speedups by itself.
+CPU. Thinking about CPU caches and architecting programs around them can lead to significant
+speedups by itself.
 
-We can also quite easily make the code SIMD. Going wide can happen either over rays or geometries,
-both of which have their respective strengths and weaknessess. When going wide over rays, we get the
-obvious benefit of testing multiple rays against a geometry, but there is also a subtler compounding
-effect: we get a lot more value out of each geometry we load, as we test it against 4/8/16 rays at a
-time. Problems arise with some rays finishing after less bounces than others, making the contents of
-our wide registers be both active and finished rays. We either have to do something about that
-[hot-swapping-rays], or accept the wasted work. Going wide over rays was the route taken by Casey
-Muratori in his Handmade Ray educational miniseries: https://guide.handmadehero.org/ray/.
+We can also quite easily make the code SIMD. Going wide can happen either over rays or
+geometries. When going wide over rays, we not only get the obvious benefit of testing multiple rays
+against geometry, but there is also a subtler compounding effect: we get a lot more value out of
+each geometry we load, because we test it against multiple rays at a time. Problems arise with some
+rays finishing after less bounces than others, making the contents of our wide registers be both
+active and finished rays. We either have to do something about that [hot-swapping-rays], or accept
+the wasted work. Going wide over rays was the route taken by Casey Muratori in his Handmade Ray
+educational miniseries: https://guide.handmadehero.org/ray/.
 
 [hot-swapping-rays]: After we have made a pass over all geometry and we know which rays hit what, we
 could write out the results for finished rays and load in new ones into our wide registers. This
@@ -318,7 +318,9 @@ Unlike paralellizing on rays, going wide over geometry doesn't ameliorate the co
 to the CPU. Each wide geometric primitive is loaded to be tested against a ray, evicted by
 subsequent loads [eviction], only to be loaded again when the next ray is going to need that exact
 same memory. It still is an improvement over the non-SIMD version, as we at least compute more
-intersections at a time, and it does not need to care about dead rays.
+intersections at a time. It is also simpler to think about (unless you think about SIMD a lot),
+because the nature of the code is still mostly scalar and you only do SIMD to accelerate select
+parts.
 
 [eviction]: The exact level of eviction (register file, L1, L2, ...) gets worse with the size of the
 working set.
@@ -344,15 +346,22 @@ very well have overlapping bounding volumes, both of which are contained by the 
 volume. This means that traversing a BVH can take multiple paths at the same time, as they aren't
 necessarilly mutually exclusive.
 
-In practice, the bounding volume can any volumetric geometry and the leaf nodes can store whatever
-we want, but our raytracer used axis-aligned bounding boxes and triangles, so we are going to do the
-same here.
+In practice, the bounding volume can be any volumetric geometry [bounding-volumes] and the leaf nodes can store
+whatever we want, but our raytracer used axis-aligned bounding boxes and triangles, so we are going
+to do the same here.
+
+[bounding-volumes]: Except axis-aligned bounding boxes, bounding spheres and oriented bounding boxes
+are often used. Choosing is about making a tradeoff between how much culling does the bounding
+volume do compared to its memory footprint. Spheres are smallest in memory, but do least
+culling. Oriented boxes do the most culling, but take up the most storage, and also someone has to
+do the work of finding the best orientation. We went with axis-aligned boxes, because they are
+simple and reasonably good.
 
 (XXX: Picture)
 
 Testing rays against a BVH is not all that different to what we have been doing until now. We are
-still going to be keeping track of the closest hit, which can be one of the triangles in the leaf
-nodes. To get to those triangles, we first traverse the tree, testing against each node's bounding
+still going to be keeping track of the closest hit, which is one of the triangles in the leaf
+nodes. To get to those triangles, we traverse the tree, testing against each node's bounding
 volume. However, we only visit child nodes, if the ray intersected with the parent node's
 volume. Once we get to a leaf node, we test our ray against the node's geometry, recording track of
 the closest hit distance and normal. Once we know the closest hit distance, we can use it to
@@ -380,10 +389,10 @@ Node :: struct {
     data: Node_Data;
 
     // This union is wasteful, but helps keep the pseudocode concise.
-    // In reality, we want to store inner nodes and leaves in separate arrays.
+    // In reality, we want to store inner nodes and leaves in separate arrays. We'll do that soon.
     Node_Data :: union {
-        inner: Node_Inner;
-        leaf:  Node_Leaf;
+        inner: Inner_Node;
+        leaf:  Leaf_Node;
     }
 
     Node_Type :: enum {
@@ -391,12 +400,12 @@ Node :: struct {
         LEAF  :: 1;
     }
 
-    Node_Inner :: struct {
+    Inner_Node :: struct {
         left: s64;
         right: s64;
     }
 
-    Node_Leaf :: struct {
+    Leaf_Node :: struct {
         count: s64;
         triangles: [LEAF_TRIANGLE_COUNT] Triangle;
         materials: [LEAF_TRIANGLE_COUNT] Material;
@@ -446,7 +455,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 
         if hit_distance == FLOAT32_MAX {
            // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
-           ray_color *= .{ 0.2, 0.1, 0.4 };
+           ray_color *= { 0.2, 0.1, 0.4 };
            return ray_color;
         }
 
@@ -460,10 +469,10 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
     }
 
     // We ran out of bounces and haven't hit a light.
-    return .{ 0, 0, 0 };
+    return { 0, 0, 0 };
 }
 
-// We'll define some of these later. For now note that the interface is roughly as written here.
+// We'll define some of these later. For now note that the interface is roughly this.
 ray_aabox_intersection    :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle: Triangle) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
 attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
@@ -493,7 +502,7 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
     }
 
     stack: [..] Frame;
-    array_add(*stack, .{ 0, _triangles });
+    array_add(*stack, { 0, _triangles });
 
     while stack.count {
         frame := pop(*stack);
@@ -541,8 +550,8 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
 
             left_triangles, right_triangles := split_array_view(triangles, triangles.count / 2);
 
-            array_add(*stack, .{ left_index, left_triangles });
-            array_add(*stack, .{ right_index, right_triangles });
+            array_add(*stack, { left_index, left_triangles });
+            array_add(*stack, { right_index, right_triangles });
         }
     }
 
@@ -550,17 +559,17 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
 }
 ```
 
-Now the our raytracer scales logarithmically with the size of the scene. However, when we naively
-entered the land of computer science, we have temporarily lost our ability to utilize modern
+Now the our raytracer scales logarithmically with the size of the scene. However, by naively
+entering the land of computer science, we have temporarily lost our ability to utilize modern
 hardware, and have to do some thinking to recover it.
 
------------------------------------------------------------------------------------------------
 # Raytracer Architecture, Second Main Course
 
 While the raytracer now has good scaling with the size of the scene, we are not utilizing any
-intra-core parallelism yet, which is a theoretical 4x/8x within our reach. Currently, each ray has
-to traverse the BVH, test against the axis-aligned bounding boxes of its nodes, and for each leaf
-also test against each triangle, one scalar battle after another.
+intra-core parallelism yet, which is a theoretical 4x/8x (perhaps 16x, if you are reading this in
+the future) within our reach. Currently, each ray has to traverse the BVH, test against the
+axis-aligned bounding boxes of its nodes, and for each leaf also test against each triangle, one
+scalar battle after another.
 
 There's two general avenues of improvement we could explore from here, analogous to the simple array
 architecture from earlier: parallelizing on rays, or parallelizing on geometry traversal.
@@ -569,18 +578,18 @@ Unfortunately, in 2023 I wasn't smart enough to figure out the ray-parallel desi
 include a BVH, and even today I am not sure it would work out all that well. My sketch version has
 several problems right off the bat. It would require SIMD gather, which is at least AVX2 on x64, and
 I am not sure if a NEON equivalent even exists. Moreover, the gather instructions would likely be
-doing loads from wildly different memory addresses (and cache lines), and they would still be
+doing loads from wildly different memory addresses (and thus cache lines), and they would still be
 subject to physical limitations like memory bandwidth. On top of all that, we'd have maintain a
 traversal stack per SIMD lane... When put together, this seems troublesome. It may still be
 possible, and if anyone actually did this, I'd love to know what you did.
 
 But instead we are going to go the obvious way, SIMD crunching multiple geometries against a single
 ray. While you can readily imagine how we'd SIMD-ify testing rays against triangles in leaf nodes,
-the more interesting part is applying SIMD to crunch through the bounding volumes. The most obvious
-challenge here is that the data is not even remotely organized to do this. The bounding boxes are
-stored in nodes of a binary tree, each node floating who knows where in memory. However, what if we
-could reshape the tree such that it is essentially the same tree, but the bounding boxes we test
-against are laid out next to each other in memory?
+the more interesting part is applying SIMD to test the bounding volumes. The most obvious challenge
+here is that the data is not even remotely organized to do this. The bounding boxes are stored in
+nodes of a binary tree, each node floating who knows where in memory. However, what if we could
+reshape the tree such that it is essentially the same tree, but the bounding boxes we test against
+are laid out next to each other?
 
 The transform we are going to do involves changing the tree's branching factor, as well as pulling
 the child nodes' bounding volumes into the parent node. In some sense, this is the core idea of the
@@ -590,22 +599,24 @@ own, but it looks obvious in hindsight. Cursory internet search also says other 
 
 [wide-bvh]: Chips & Cheese talks about AMD raytracing hardware having 8-wide BVH in this article:
 https://chipsandcheese.com/p/rdna-4s-raytracing-improvements. Also, this 2008 articles essentially
-talks about the same thing as we did: https://jo.dreggn.org/home/2008_qbvh.pdf.
+talks about the same thing as we did: https://jo.dreggn.org/home/2008_qbvh.pdf. Most recently, this
+GDC talk does a similar thing for their BVH for collision detection:
+https://www.youtube.com/watch?v=6BIfqfC1i7U.
 
 However, before we get to the exciting wide BVH, there is one last piece of housekeeping. In the
-previous version of the code, both types of BVH nodes were stored in a single array and we
-interpretted their contents based on the the type tag.
+previous version, both types of BVH nodes were stored in a single array and we interpretted their
+contents based on the the type tag.
 
-Since we are about to do SIMD, we would like to leave the heterogeneous tree nodes behind. There's
-two problems with it, the main one being the memory we have to load when we walk it. We want to make
-sure that each loaded byte and cache line counts. Towards that end, we would like to have the nodes
-contain only what we need, align them to cache lines and make sure they do not straddle cache line
-boundaries. This is not impossible to do for the heterogenous tree, but at least for me it is
-simpler to think about it when the two kinds of nodes are not stored in the same array. The second
-problem is memory use. This is not such a big deal today [ram-spikes], but still it would be nice if
-we allocated only what we used.
+Since we are about to do SIMD (which arguably means rolling up our sleeves and being serious), we
+would like to leave the heterogeneous tree nodes behind. There's two problems with it, the main one
+being the memory we have to load when we walk it. We want to make sure that each loaded byte and
+cache line counts. Towards that end, we would like to have the nodes contain only what we need,
+align them to cache lines and make sure they do not straddle cache line boundaries. This is not
+impossible to do for the heterogeneous tree, but at least for me it is simpler to think about it
+without the overlay. The second problem is memory use. This is not such a big deal today
+[ram-spikes], but still it would be nice if we allocated only what we used.
 
-[ram-spikes]: Although the RAM prices are rather high today.
+[ram-spikes]: Although the RAM prices are rather high right now.
 
 Our new BVH has two kinds of nodes, each stored in their own array. The inner nodes contain indices
 that point into either inner or leaf nodes. The leaf nodes only contain triangle and material data.
@@ -632,8 +643,7 @@ Leaf_Node :: struct {
 }
 
 BVH_Index :: struct {
-    // 2:62 - 2 bits of tag to select the array, 62 bits to index into the array.
-    value: u64;
+    value: u64; // 2:62; 2 bits of tag to select the array, 62 bits to index into the array.
 
     TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
     TAG_INNER: u64 : 1; // INNER indices point to the inner_nodes array.
@@ -641,11 +651,11 @@ BVH_Index :: struct {
 }
 
 compose_inner_node_index :: (index: s64) -> BVH_Index {
-    return .{ (TAG_INNER << 62) | cast(u64, index) };
+    return { (TAG_INNER << 62) | cast(u64, index) };
 }
 
 compose_leaf_node_index :: (index: s64) -> BVH_Index {
-    return .{ (TAG_LEAF << 62) | cast(u64, index) };
+    return { (TAG_LEAF << 62) | cast(u64, index) };
 }
 
 decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index: s64 {
@@ -660,9 +670,9 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index: s64 {
 Now we are ready to make our BVH wide.
 
 From now on, the code snippets will target AVX hardware (8-wide), because the cache line math works
-out nicely, at least compared to SSE (4-wide). We could just as well build SSE/NEON (4-wide) or
-AVX-512 (16-wide) versions of the data structures. In fact, later in the article we talk about how
-multiple implementations can coexist side by side and produce the same results.
+out nicely compared to SSE and NEON (4-wide). We could just as well build SSE/NEON (4-wide) or AVX-512
+(16-wide) versions of the data structures. In fact, later in the article we talk about how multiple
+implementations can coexist side by side and produce the same results.
 
 To make the BVH wide, we restructure it slightly. I am going to do so in steps to make it easier to
 follow. First imagine the node's bounding volume is not stored in the node itself, but its
@@ -682,8 +692,8 @@ Inner_Node :: struct {
 With nodes storing the bounding boxes of their child nodes, we now know whether our ray will hit the
 child nodes before we visit them. More importantly, the bounding boxes are now stored next to each
 other, and we could process them both at the same time. In fact, if we stopped here, it is possible
-that the out of order window would be large enough so that we could schedule both intersection
-computations.
+that the out-of-order window would be large enough so that the CPU would schedule both intersection
+tests in parallel.
 
 But why stop at two:
 
@@ -735,9 +745,9 @@ Inner_Node_X8 :: struct {
 +----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
 ```
 
-Now that all that data is snugged together, all that's left before we vectorize is to align
-stuff. We might as well factor out the 8-wide axis-aligned box type, since that is what our
-intersection routine will be operating one. The final version of the wide node:
+Now that all that data is snugly together, all that's left before we vectorize is to align stuff. We
+might as well factor out the 8-wide axis-aligned box type, since that is what our intersection
+routine will be operating on. The final version of the wide node:
 
 ```
 AABox_Pack_X8 :: struct {
@@ -754,17 +764,18 @@ Inner_Node_X8 :: struct {
 }
 ```
 
-With the 8-wide bounding box, we need a new intersection routine, but the interface is similar:
+With the 8-wide bounding box, we need a new intersection routine, but the interface is similar to
+the old one:
 
 ```
-// Implementation in the dessert chapter. Also notice we are not returning the hit normal, becuase we won't be needing it.
+ // Implementation in the dessert section. Also notice we are not returning the hit normal, becuase we won't be needing it.
 SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8;
 ```
 
 Compared to organizing the tree for SIMD, once we crunch through the tree and reach the triangles
 stored in leaves, going wide is fairly straightforward. One slight subtlety is that instead of
 triangle count, we are going to have a triangle mask instead, which nicely pads the memory to 5
-cache lines. The structs defining the leaf node look like this:
+cache lines. The struct defining the leaf node looks like this:
 
 ```
 Leaf_Node_X8 :: struct {
@@ -801,9 +812,10 @@ implementations. The AVX backend actually benefitted speed-wise from having 16 t
 (and you can imagine AVX-512 benefiting even more), but we wanted our BVH to have the same shape
 across implementations, so this number ended up being a compromise between SSE/NEON and AVX. The
 consistency argument is maybe not all that strong, it depends on how much you want to radiate the
-impression deterministic software. If you do want to have the same results, the tree must looks the
-same, otherwise ordering of leaf nodes and triangles within can cause a ray to reflect elsewhere
-(and so can not being consistent about FMA usage, but now I am really digressing).
+impression of deterministic software. We wanted to have the same results, and the simplest way to
+achieve that was to have the tree look the same, otherwise ordering of leaf nodes and triangles
+within caused a ray to reflect elsewhere. Maybe there was something smarted we could have done, I
+don't know.
 
 ```
 BVH_Index :: struct {
@@ -818,11 +830,12 @@ BVH_Index :: struct {
 }
 
 compose_inner_node_index :: (index: s64) -> BVH_Index {
-    return .{ (TAG_INNER << 62) | cast(u64, index) };
+    return { (TAG_INNER << 62) | cast(u64, index) };
 }
 
 compose_leaf_node_index :: (start: s64, end: s64) -> BVH_Index {
-    return .{ (TAG_LEAF << 62) | cast(u32, start) << 31 | cast(u32, end) };
+    // XXX: assert max sizes
+    return { (TAG_LEAF << 62) | cast(u64, start) << 31 | cast(u64, end) };
 }
 
 decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index0: s64, index1: s64 {
@@ -843,8 +856,8 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index0: s64, index1:
 
 ```
 
-Now that we defined the new structure of the tree, we need to adjust both the code that builds the
-tree and the code that traverses it.
+Now that we defined the new structure of the tree, we need to adjust both the code that builds and
+the code that traverses it.
 
 The build code is fairly boring, but also verbose, so I won't write it out in pseudocode this
 time. The new build function has to split nodes 8-way. It does this by doing multiple splits for
@@ -853,8 +866,8 @@ finally splitting those once again. It computes a bounding box for each group of
 writes it in the current node. Something that couldn't have happened for regular BVHs, but often
 happens for wide ones is not having enough triangles for the 8-way split. When this happens, some
 bounding boxes are going to be empty (zero size, positioned at zero), and their corresponding
-indices will have the TAG_NIL. Empty bounding boxes will not be intersected by rays, and just in
-case we made an error in the intersection math, the TAG_NIL tells us we can not follow that index.
+indices will have the TAG_NIL. Empty bounding boxes will fail intersection tests, and just in case
+we made an error in the intersection math, the TAG_NIL tells us we can not follow that index.
 
 We can, however, write out the pseudocode for traversing the wide BVH. If you squint, it isn't all
 that different to what we have been doing so far:
@@ -882,10 +895,10 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
                 case BVH_Index.TAG_INNER; {
                     inner := *bvh.inner_nodes[node_i0];
 
-                    hit_x8, distance_x8 := SIMD_ray_aabox_intersectoin(ray_origin, ray_direction, inner.aabox_pack);
-                    hit_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
+                    hit_mask_x8, distance_x8 := SIMD_ray_aabox_intersectoin(ray_origin, ray_direction, inner.aabox_pack);
+                    hit_mask_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
 
-                    for hit: hit_x8 {
+                    for hit: hit_mask_x8 {
                         if hit {
                             array_add(*search_stack, inner.child_indices[it_index]);
                         }
@@ -899,16 +912,16 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
                         // The normal is actually not a sideproduct of the intersection code for triangles
                         // (Moller-Trumbore), and we wouldn't normally compute it eagerly, but do so to
                         // simplify the code.
-                        hit_x8, distance_x8, normal_x8 := SIMD_ray_triangle_intersection(ray_origin, ray_direction, leaf.triangle_pack);
+                        hit_mask_x8, distance_x8, normal_x8 := SIMD_ray_triangle_intersection(ray_origin, ray_direction, leaf.triangle_pack);
 
-                        hit_x8 &= leaf.triangle_mask;
-                        hit_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
+                        hit_mask_x8 &= leaf.triangle_mask;
+                        hit_mask_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
 
-                        if SIMD_mask_is_zeroed(mask_x8) {
+                        if SIMD_mask_is_zeroed(hit_mask_x8) {
                             continue;
                         }
 
-                        distance_min_x8 := SIMD_select(mask_x8, distance, SIMD_splat(FLOAT32_MAX));
+                        distance_min_x8 := SIMD_select(hit_mask_x8, distance, SIMD_splat(FLOAT32_MAX));
                         distance_min    := SIMD_horizontal_min(distance_min_x8);
 
                         if distance_min < hit_distance {
@@ -933,7 +946,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 
         if hit_distance == FLOAT32_MAX {
            // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
-           ray_color *= .{ 0.2, 0.1, 0.4 };
+           ray_color *= { 0.2, 0.1, 0.4 };
            return ray_color;
         }
 
@@ -947,35 +960,35 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
     }
 
     // We ran out of bounces and haven't hit a light.
-    return .{ 0, 0, 0 };
+    return { 0, 0, 0 };
 }
 ```
 
 And that's a wrap! The next section is going to tie up some loose ends I didn't manage to weave in
 here, but otherwise this is a fairly complete picture of SIMD-ifying your raytracer. I unfortunately
-don't have the measurements from back when we were doing this, but have re-measured the scalar
-fallback, SSE, and AVX backends of the raytracer.
+don't have the measurements from back when we were doing this, but have re-measured the scalar, SSE,
+and AVX backends of the raytracer now.
 
-For a small scene (the entire BVH fits in the L3 of my Ryzen 5950X), going from scalar to SSE was
-about 2.1x speedup, and going from SSE to AVX was another 1.3X speedup. The same multipliers are
-also true for a large scene (400 megabytes of BVH), which I admit is a little strange, as I expected
-the difference between L3 and main memory to be more pronounced. Perhaps I should craft a scene that
+For a small scene (the entire BVH fits in the L3 of Ryzen 5950X), going from scalar to SSE was about
+2.1x speedup, and going from SSE to AVX was another 1.3X speedup. The same multipliers are also true
+for a large scene (400 megabytes of BVH), which I admit is a little strange, as I expected the
+difference between L3 and main memory to be more pronounced. Perhaps I should craft a scene that
 would fit the L1 or L2 to see if anything changes.
 
-I want to end on one obvious benefit and less obvious drawback of the wide BVH, which might even
+I want to end on one obvious benefit and one less obvious drawback of the wide BVH, which might even
 partially explain the diminishing returns in speed observed above. Let's start with the good. The
-wider your BVH, the less nodes you have, and thus less bounding boxes and less indices. This is a
-good thing, and on the extreme, it might even help and push your scene into a better cache class
-(e.g. L3 -> L2), apart from improving the memory footprint.
+wider your BVH, the less nodes you have, and thus less bounding boxes and less indices. On the
+extreme, it might even help and push your scene into a better cache class (e.g. L3 -> L2), apart
+from improving the memory footprint.
 
 The bad news is, the fatter your nodes, the more memory bandwidth is required to load each one. The
 8-wide nodes occupy four x64 cache lines. 16-wide nodes would have been eight cache lines. This
-starts becoming a problem, if most of your intersection tests fail (which most of them should, if
+starts becoming a problem, when most of your intersection tests fail (which most of them should, if
 your BVH is good). You loaded all those boxes, only to to realize that the ray does not intersect
 them. To measure the impact here, we could instrument the code with a metric of average read cache
 lines per bounce. We'd likely see that the wider we go, the worse that metric becomes, eventually
-making negating the benefits of the wide traversal. (TODO(jt): I haven't actually done this, so
-maybe I should, before I say untrue things.)
+negating the benefits of wide traversal. I haven't actually done this, so maybe I should, before I
+say untrue things.
 
 # Raytracer Architecture, Dessert
 
@@ -985,23 +998,29 @@ This section is not yet written. I want to talk about these miscelleanous things
 - Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 - SAH optimization (Credit DH)
 - Sort bounding boxes before pushing on stack.
-- targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
-- making sure the multiple backends return the same results -> tree structure must be the same, FMA
+- Targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
+- Making sure the multiple backends return the same results -> tree structure must be the same, FMA
   must be either forced or disallowed for all backends
-- threading: job per light probe (~thousands of rays)
-- memory allocation: in what places does a raytracer allocate? how can we make the allocation cheap (on stack arrays, memory arenas).
-- Pre-baked sphere rays.
+- Threading: job per light probe (~thousands of rays)
+- Memory allocation: in what places does a raytracer allocate? how can we make the allocation cheap (on stack arrays, arenas).
 
 # Future experiments
 
 - Would avx512 help? 16-wide BVH means a lot of memory traffic. How many cache lines do we have to
-  read on average for a sinle ray? And how many 512-bit loads?
-- f16?
-- Hiding indices in floats?
-- Going wide over rays AND having a BVH... if we can do a smart gather.
-- what about metropolis, monte carlo estimation, etc...
+  read on average for a single ray? And how many 512-bit loads?
+- Compress BVH to f16? I tried this once, and it was slow AF. I don't remember why exactly. Could be
+  that the boxes were less tight, causing more traversal. Could be that I made a mistake. I also did
+  the manually, but there is wide F16->F32 decode in AVX-512.
+- What about metropolis, monte carlo estimation, etc...
 
 # Conclusion
 
-- mention that this is 1000x faster than Climate Studio and Ladybug (for projects that Ladybug can even load)
-- I might re-implement and opensource the generally useful parts
+- Mention that our raytracer is 1000x faster than Climate Studio and Ladybug (for projects that
+  Ladybug can even load). We probably could have done better, but Radiance is for sure quite bad.
+
+# Sources
+
+Raytracing Weekend
+Handmade Ray
+Carmack QuakeCon 2013
+Extreme SIMD Collision Detection
