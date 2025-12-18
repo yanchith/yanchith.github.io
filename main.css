@@ -86,18 +86,28 @@ main section p {
     margin-bottom: 25px;
 }
 
+main > pre {
+    width: 100%;
+
+    font-size: 16px;
+    font-family: "LiberationMono-Regular";
+    margin-bottom: 20px;
+    padding: 30px;
+    border: 1px solid;
+}
+
 main section pre {
     font-size: 16px;
     font-family: "LiberationMono-Regular";
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     padding: 10px;
-    background: #f0f0f0;
+    border: 1px solid;
 }
 
 main section li {
     font-size: 18px;
-    margin-bottom: 25px;
-    margin-left:   25px;
+    margin-bottom: 20px;
+    margin-left:   20px;
     list-style: outside;
 }
 
@@ -125,8 +135,7 @@ main section .videocontent > p {
 
 main section .sidenote > p {
     font-size: 14px;
-    text-align: center;
-    margin-top: 25px;
+    text-align: start;
 }
 
 main section h1 {
