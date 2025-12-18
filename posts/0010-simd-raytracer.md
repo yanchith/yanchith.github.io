@@ -1,5 +1,5 @@
 This is an article about fast raytracing on the CPU. Because we are going to be focusing on fast for
-most of the article, there will assumptions of raytracing, math and programming knowledge. To not
+most of the article, there will be assumptions of raytracing, math and programming knowledge. To not
 leave people behind, I'll explain some basics as we go, but to get deeper understanding, I
 wholeheartedly recommend doing your own research. A good place to start is the Raytracing Weekend
 book series (https://raytracing.github.io/). For computer knowledge, my long-form recommendation for
@@ -20,7 +20,7 @@ have made the results better. I'd be happy to receive your email with any feedba
 
 Now, before we get to the core of the problem, here's the last bit of context. In early 2023, a
 startup company I worked for was about to get funding, and we wanted to warm up the programming team
-on a thing we knew we are going to need before fanning out and developing the rest. The goal of the
+on a thing we knew we were going to need before fanning out and developing the rest. The goal of the
 company was to give real estate developers tools to procedurally generate housing architecture. This
 housing was supposed to meet the developer's criteria, such as yields, mix of functions and
 apartment sizes, aesthetics, as well as spatial instructions (e.g. build here but not there, build
@@ -31,7 +31,7 @@ high-dimensional problem space. A house is definitely not just any house shaped 
 before we even enter the realm of architecture, there's structural engineering, business, regulatory
 and legal criteria that a house must satisfy. For such a tall order, we assumed that even a smartly
 designed learning algorithm will have to do many iterations, getting feedback from a myriad of
-evaluators (structural, sunlight/daylight, accoustic, business, legal) until it reaches a solution.
+evaluators (structural, sunlight/daylight, acoustic, business, legal) until it reaches a solution.
 
 (XXX: GIF)
 
@@ -75,7 +75,7 @@ baking come down to how the results are used, not how they are computed. Compare
 daylight evaluation doesn't care about color, only intensity, nor does it need to produce
 information about which direction the light is coming from for the light probes. Daylighting also
 only needs to simulate perfectly diffuse (Lambertian) materials, making some parts simpler. There's
-also a few peripheral bits about interpretting the results that are specific to the AEC industry. I
+also a few peripheral bits about interpreting the results that are specific to the AEC industry. I
 am going to purposefully ignore these, and instead focus on raytracing, which I believe looks the
 same as it would in a computer graphics application.
 
@@ -106,14 +106,14 @@ probabilistic behavior arises from our inability to keep track large data, leadi
 about macrostates and entropy instead.
 
 [oversimplification]: This is an oversimplification on many levels. Photons do not necessarily
-bounce of off all surfaces. Sometimes they are absorbed, and a new photon is emitted. However, there
+bounce off of all surfaces. Sometimes they are absorbed, and a new photon is emitted. However, there
 is a grain of truth in this model, and imagining photons as "zillions of bouncing billiard balls"
 doesn't disrupt our high level simulation.
 
 The implication of bidirectionality for our simulation is that we can trace rays in reverse: from
 the relatively few points we are interested in towards light sources. For infinite number of rays we
 would have reached the same answer either way, but with our finite limitations, we have higher
-chance of sucessfully completing the path between the light source and the camera going backwards
+chance of successfully completing the path between the light source and the camera going backwards
 [big-lights]. With both forward and reverse raytracing, we keep track of how much energy we lose
 each bounce. Because these energy losses (also called attenuation) multiply, and multiplication is
 commutative, this works out the same regardless of the direction we trace the ray in.
@@ -125,7 +125,7 @@ So we trace rays from our measurement points, hoping they eventually reach sourc
 rays go in a straight line until they hit something. Depending on what was hit, various things
 happen.
 
-If the ray hits a light reflecting surface, it bounces off of the it back into the scene. The new
+If the ray hits a light reflecting surface, it bounces off of it, back into the scene. The new
 direction of the ray depends on the physical properties of the surface. Some surfaces reflect the
 ray as a mirror would, others deflect the ray in a random direction, and there are more complicated
 behaviors for realistic materials, described by the material's Bidirectional Reflectance
@@ -164,7 +164,7 @@ denoising fish-eye pictures.
 # Raytracer Architecture, Appetizer
 
 At a high level, a raytracer operates on a geometric description of the scene and a list of rays it
-needs to compute on that scene. These do not necessarilly change at the same rate from frame to
+needs to compute on that scene. These do not necessarily change at the same rate from frame to
 frame, and many real-time raytracers reason about that (but we won't).
 
 The simplest and most flexible way to represent the scene is to have arrays of various geometric
@@ -175,7 +175,7 @@ it fits in pseudocode.
 
 [intersection]: Testing rays against geometry means solving an equation for the two parametric
 geometries, e.g. ray and sphere. The solve provides us with both the distance to the intersection
-point and the normal of the intersected surface, both of which we need to procede. The math and code
+point and the normal of the intersected surface, both of which we need to proceed. The math and code
 for these is delayed until the section Raytracer Architecture, Dessert.
 
 ```
@@ -314,7 +314,7 @@ could write out the results for finished rays and load in new ones into our wide
 would incur some management and complexity overhead, but would also mean we utilize memory and SIMD
 to the fullest right until the very end where we run out of rays to swap in.
 
-Unlike paralellizing on rays, going wide over geometry doesn't ameliorate the cost of memory traffic
+Unlike parallelizing on rays, going wide over geometry doesn't ameliorate the cost of memory traffic
 to the CPU. Each wide geometric primitive is loaded to be tested against a ray, evicted by
 subsequent loads [eviction], only to be loaded again when the next ray is going to need that exact
 same memory. It still is an improvement over the non-SIMD version, as we at least compute more
@@ -328,7 +328,7 @@ working set.
 Now back to the elephant, which is algorithmic in nature. We are visiting each geometry for each ray
 bounce, but most of those rays have no way to reach most geometries. This incurs many wasted loads
 and calculations per bounce. To get away from the O(m*n), we use acceleration structures to help
-with eliminating impossible hits, such as Bounding Volume Hierachies (BVH) or Octrees. Choosing a
+with eliminating impossible hits, such as Bounding Volume Hierarchies (BVH) or Octrees. Choosing a
 datastructure depends on the character of your data. We went with the BVH, because it doesn't have
 many assumptions and degrades gracefully with bad quality of input [bvh-generality].
 
@@ -344,7 +344,7 @@ geometries. Note that a node's bounding volume only has a relation to the node's
 is no direct relation between the bounding volumes of two sibling tree nodes. Two sibling nodes can
 very well have overlapping bounding volumes, both of which are contained by the parent's bounding
 volume. This means that traversing a BVH can take multiple paths at the same time, as they aren't
-necessarilly mutually exclusive.
+necessarily mutually exclusive.
 
 In practice, the bounding volume can be any volumetric geometry [bounding-volumes] and the leaf nodes can store
 whatever we want, but our raytracer used axis-aligned bounding boxes and triangles, so we are going
@@ -485,12 +485,12 @@ to build a bad but correct BVH. For a good BVH, we'd also like to minimize the v
 takes, and make bounding volumes of sibling nodes overlap less. We'll work on building a good BVH
 later.
 
-Starting with an array of triangles, we begin building the hierachy by conceptually putting all the
+Starting with an array of triangles, we begin building the hierarchy by conceptually putting all the
 triangles into a single BVH node. We then recursively split nodes until the number of triangles they
 contain is below a predefined threshold.
 
 ```
-// Struct definitions are the same as in previous listing.
+// Struct definitions are the same as in the previous listing.
 
 make_bvh :: (_triangles: [] Triangle) -> BVH {
     bvh: BVH;
@@ -559,7 +559,7 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
 }
 ```
 
-Now the our raytracer scales logarithmically with the size of the scene. However, by naively
+Now the raytracer scales logarithmically with the size of the scene. However, by naively
 entering the land of computer science, we have temporarily lost our ability to utilize modern
 hardware, and have to do some thinking to recover it.
 
@@ -604,8 +604,8 @@ GDC talk does a similar thing for their BVH for collision detection:
 https://www.youtube.com/watch?v=6BIfqfC1i7U.
 
 However, before we get to the exciting wide BVH, there is one last piece of housekeeping. In the
-previous version, both types of BVH nodes were stored in a single array and we interpretted their
-contents based on the the type tag.
+previous version, both types of BVH nodes were stored in a single array and we interpreted their
+contents based on the type tag.
 
 Since we are about to do SIMD (which arguably means rolling up our sleeves and being serious), we
 would like to leave the heterogeneous tree nodes behind. There's two problems with it, the main one
@@ -768,7 +768,7 @@ With the 8-wide bounding box, we need a new intersection routine, but the interf
 the old one:
 
 ```
- // Implementation in the dessert section. Also notice we are not returning the hit normal, becuase we won't be needing it.
+// Implementation in the dessert section. Also notice we are not returning the hit normal, because we won't be needing it.
 SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8;
 ```
 
@@ -992,13 +992,13 @@ say untrue things.
 
 # Raytracer Architecture, Dessert
 
-This section is not yet written. I want to talk about these miscelleanous things in it:
+This section is not yet written. I want to talk about these miscellaneous things in it:
 
 - Explain the slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
 - Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 - SAH optimization (Credit DH)
 - Sort bounding boxes before pushing on stack.
-- Targetting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
+- Targeting multiple SIMD backends within one binary: avx2, sse2, neon, fallback
 - Making sure the multiple backends return the same results -> tree structure must be the same, FMA
   must be either forced or disallowed for all backends
 - Threading: job per light probe (~thousands of rays)
@@ -1010,7 +1010,7 @@ This section is not yet written. I want to talk about these miscelleanous things
   read on average for a single ray? And how many 512-bit loads?
 - Compress BVH to f16? I tried this once, and it was slow AF. I don't remember why exactly. Could be
   that the boxes were less tight, causing more traversal. Could be that I made a mistake. I also did
-  the manually, but there is wide F16->F32 decode in AVX-512.
+  the f16 decode manually, but there is wide F16->F32 decode in AVX-512 (which I didn't have access to).
 - What about metropolis, monte carlo estimation, etc...
 
 # Conclusion
