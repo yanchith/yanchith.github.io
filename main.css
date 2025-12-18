@@ -27,6 +27,13 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: "LiberationMono-Regular";
+    src: url("./LiberationMono-Regular.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+
 body {
     font-family: "IBMPlexMono-Light", "Courier New", Arial;
     overflow-x: hidden;
@@ -64,7 +71,7 @@ main p a {
 main section {
     display: grid;
     grid-template-columns: 50% 50%;
-    grid-row-gap:    25px;
+    /* grid-row-gap:    25px; XXX: Verify it all looks okay after I turned this off */
     grid-column-gap: 50px;
 }
 
@@ -77,6 +84,14 @@ main section img {
 main section p {
     font-size: 18px;
     margin-bottom: 25px;
+}
+
+main section pre {
+    font-size: 16px;
+    font-family: "LiberationMono-Regular";
+    margin-bottom: 25px;
+    padding: 10px;
+    background: #f0f0f0;
 }
 
 main section li {
@@ -103,6 +118,12 @@ main section video {
 }
 
 main section .videocontent > p {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 25px;
+}
+
+main section .sidenote > p {
     font-size: 14px;
     text-align: center;
     margin-top: 25px;
