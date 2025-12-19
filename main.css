@@ -3,6 +3,9 @@
     padding: 0;
     border: 0;
     outline: 0;
+
+    box-sizing: border-box;
+
     text-decoration: none;
     font-weight: inherit;
     font-style: inherit;
@@ -13,12 +16,10 @@
     list-style: none;
     border-collapse: separate;
     border-spacing: 0;
+
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
-
-/* TODO(yan): Try out the 'Cardo' font. https://fonts.google.com/specimen/Cardo */
-/* TODO(yan): woff2 fonts with fallback */
 
 @font-face {
     font-family: "IBMPlexMono-Light";
@@ -39,7 +40,7 @@ body {
     overflow-x: hidden;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 45px 90px;
+    padding: 20px 90px;
 }
 
 /* -- header -- */
@@ -70,8 +71,7 @@ main p a {
 
 main section {
     display: grid;
-    grid-template-columns: 50% 50%;
-    /* grid-row-gap:    25px; XXX: Verify it all looks okay after I turned this off */
+    grid-template-columns: calc(50% - 25px) calc(50% - 25px);
     grid-column-gap: 50px;
 }
 
@@ -89,15 +89,15 @@ main section p {
 main > pre {
     width: 100%;
 
-    font-size: 16px;
+    font-size: 14px;
     font-family: "LiberationMono-Regular";
     margin-bottom: 20px;
-    padding: 30px;
+    padding: 10px;
     border: 1px solid;
 }
 
 main section pre {
-    font-size: 16px;
+    font-size: 14px;
     font-family: "LiberationMono-Regular";
     margin-bottom: 20px;
     padding: 10px;
@@ -237,7 +237,7 @@ footer p {
 
 @media (max-width: 1200px) {
     body {
-        padding: 30px;
+        padding: 20px;
     }
 
     main section {

@@ -317,12 +317,12 @@
     <pre>
 Sphere :: struct {
     position: Vec3;
-    radius:   float32;
+    radius:   f32;
 }
 
 Plane :: struct {
     normal: Vec3;
-    d:      float32;
+    d:      f32;
 }
 
 AABox :: struct {
@@ -338,9 +338,9 @@ Material_Type :: enum u32 {
 
 Material :: struct {
     type: Material_Type;
-    p0: float32;
-    p1: float32;
-    p2: float32;
+    p0: f32;
+    p1: f32;
+    p2: f32;
 
     #overlay (p0) color: Vec3;
 }
@@ -362,7 +362,7 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
     ray_color     := Vec3.{ 1, 1, 1 };
 
     for 0..max_bounces - 1 {
-        hit_distance: float32 = FLOAT32_MAX;
+        hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
@@ -413,11 +413,11 @@ raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3
 }
 
 // We'll define some of these later. For now note that the interface is roughly this.
-ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
-ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
-ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
+ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
+ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
-bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
+bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
     </pre>
 
     <section>
@@ -600,7 +600,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
     ray_color     := Vec3.{ 1, 1, 1 };
 
     for 0..max_bounces - 1 {
-        hit_distance: float32 = FLOAT32_MAX;
+        hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
@@ -651,10 +651,10 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 }
 
 // We'll define some of these later. For now note that the interface is roughly this.
-ray_aabox_intersection    :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
-ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle: Triangle) -> hit: bool, hit_distance: float32, hit_normal: Vec3;
+ray_aabox_intersection    :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
+ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle: Triangle) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
-bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: float32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
+bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
         </pre>
 
         <p>
@@ -715,10 +715,17 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
             size_y := node.bbox.max.y - node.bbox.min.y;
             size_z := node.bbox.max.z - node.bbox.min.z;
 
-            // We compare one of the triangle points, but we could also compare centroids.
-            compare_x :: (a: Triangle, b: Triangle) -> float32 { return a.v0.x - b.v0.x; }
-            compare_y :: (a: Triangle, b: Triangle) -> float32 { return a.v0.y - b.v0.y; }
-            compare_z :: (a: Triangle, b: Triangle) -> float32 { return a.v0.z - b.v0.z; }
+            // Compare one of the triangle points.
+            // We could compare centroids instead.
+            compare_x :: (a: Triangle, b: Triangle) -> f32 {
+                return a.v0.x - b.v0.x;
+            }
+            compare_y :: (a: Triangle, b: Triangle) -> f32 {
+                return a.v0.y - b.v0.y;
+            }
+            compare_z :: (a: Triangle, b: Triangle) -> f32 {
+                return a.v0.z - b.v0.z;
+            }
 
             if size_x > size_y && size_x > size_z {
                 quick_sort(triangles, compare_x);
@@ -728,10 +735,10 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
                 quick_sort(triangles, compare_z);
             }
 
-            left_triangles, right_triangles := split_array_view(triangles, triangles.count / 2);
+            left, right := split_array_view(triangles, triangles.count / 2);
 
-            array_add(*stack, { left_index, left_triangles });
-            array_add(*stack, { right_index, right_triangles });
+            array_add(*stack, { left_index, left });
+            array_add(*stack, { right_index, right });
         }
     }
 
@@ -835,11 +842,16 @@ Leaf_Node :: struct {
 
     count: s64;
     triangles: [LEAF_TRIANGLE_COUNT] Triangle;
-    materials: [LEAF_TRIANGLE_COUNT] Material; // For now the materials are along for the ride, but we'll store them on a cold cache line soon.
+
+
+    // For now the materials are along for the ride,
+    // but we'll store them on a cold cache line soon.
+    materials: [LEAF_TRIANGLE_COUNT] Material;
 }
 
+// 2:62; 2 bits of tag to select the array, 62 bits to index into the array.
 BVH_Index :: struct {
-    value: u64; // 2:62; 2 bits of tag to select the array, 62 bits to index into the array.
+    value: u64;
 
     TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
     TAG_INNER: u64 : 1; // INNER indices point to the inner_nodes array.
@@ -971,7 +983,7 @@ Inner_Node_X8 :: struct {
 
         <pre>
 // Implementation in the dessert section. Also notice we are not returning the hit normal, because we won't be needing it.
-SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8;
+SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8;
         </pre>
 
         <p>
@@ -987,7 +999,7 @@ Leaf_Node_X8 :: struct {
     triangle_pack: Triangle_Pack_X8;
     triangle_mask: u32x8;
 
-    // Cold, 2 cache lines (for our simple material). We could also store materials out of band.
+    // Cold, 2 cache lines. We could also store materials out of band.
     materials: [8] Material;
 }
 
@@ -1004,7 +1016,7 @@ Triangle_Pack_X8 :: struct {
 
         <pre>
 // Implementation in the dessert chapter.
-SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle_pack: Triangle_Pack_X8) -> hit_mask: u32x8, hit_distance: float32x8, hit_normal: Vec3x8;
+SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle_pack: Triangle_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8, hit_normal: Vec3x8;
         </pre>
       </div>
       <div>
@@ -1048,7 +1060,7 @@ SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triang
 BVH_Index :: struct {
     // 2 bits of tag to select the array.
     // If indexing into inner nodes, 62 bits of index.
-    // If indexing into leaf nodes, 31 bits of start index and 31 bits of end (exclusive) index.
+    // If indexing into leaf nodes, 31 bits of start and 31 bits of end.
     value: u64;
 
     TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
@@ -1065,7 +1077,7 @@ compose_leaf_node_index :: (start: s64, end: s64) -> BVH_Index {
     return { (TAG_LEAF &lt;&lt; 62) | cast(u64, start) &lt;&lt; 31 | cast(u64, end) };
 }
 
-decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index0: s64, index1: s64 {
+decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, i0: s64, i1: s64 {
     INNER_MASK: u64 : (1 &lt;&lt; 62) - 1;
     LEAF_MASK:  u64 : (1 &lt;&lt; 31) - 1;
 
@@ -1075,10 +1087,10 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index0: s64, index1:
     leaf_start  := cast(s64, LEAF_MASK & (bvh_index.value >> 31));
     leaf_end    := cast(s64, LEAF_MASK & bvh_index.value);
 
-    index0 := ifx tag == TAG_LEAF then leaf_start else inner_index;
-    index1 := ifx tag == TAG_LEAF then leaf_end   else 0;
+    i0 := ifx tag == TAG_LEAF then leaf_start else inner_index;
+    i1 := ifx tag == TAG_LEAF then leaf_end   else 0;
 
-    return tag, index0, index1;
+    return tag, i0, i1;
 }
         </pre>
 
@@ -1112,7 +1124,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
     ray_color     := Vec3.{ 1, 1, 1 };
 
     for 0..max_bounces - 1 {
-        hit_distance: float32 = FLOAT32_MAX;
+        hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
