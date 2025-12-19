@@ -43,16 +43,12 @@ body {
     padding: 20px 90px;
 }
 
-/* -- header -- */
-
 header h1 {
     margin-top: 50px;
     margin-bottom: 50px;
     font-size: 45px;
     font-weight: bolder;
 }
-
-/* -- main section -- */
 
 main h1 {
     margin-top: 50px;
@@ -96,7 +92,7 @@ main > pre {
     padding: 10px;
     border: 1px solid #e0e0e0;
 
-    overflow-x: scroll;
+    overflow-x: auto;
 }
 
 main section pre {
@@ -106,7 +102,7 @@ main section pre {
     padding: 10px;
     border: 1px solid #e0e0e0;
 
-    overflow-x: scroll;
+    overflow-x: auto;
 }
 
 main section li {
@@ -166,9 +162,6 @@ main section h4 {
     font-style: italic;
 }
 
-
-/* -- footer -- */
-
 footer {
     margin-top: 100px;
 }
@@ -176,8 +169,6 @@ footer {
 footer p {
     font-size: 18px;
 }
-
-/* -- reusable things -- */
 
 .nonbreaking {
   white-space: nowrap;
@@ -225,7 +216,6 @@ footer p {
     background: black;
 }
 
-/* -- breakpoints -- */
 @media print {
     div {
         break-inside: avoid;
