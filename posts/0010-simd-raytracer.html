@@ -547,8 +547,11 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
           closest hit distance. It is worthwhile to traverse the tree depth first, so that we record our
           closest hit as soon as possible, eliminating further tests down the line.
         </p>
+      </div>
+      <div></div>
+    </section>
 
-        <pre>
+    <pre>
 Triangle :: struct {
     v0: Vec3;
     v1: Vec3;
@@ -655,8 +658,10 @@ ray_aabox_intersection    :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABo
 ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle: Triangle) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
 bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_normal: Vec3, hit_material: Material) -> origin: Vec3, direction: Vec3;
-        </pre>
+    </pre>
 
+    <section>
+      <div>
         <p>
           Building a BVH is just a little more complicated than using it. I mentioned previously that a node's
           bounding volume has no relation to bounding volumes of sibling nodes. This makes it a little easier
@@ -980,12 +985,17 @@ Inner_Node_X8 :: struct {
           With the 8-wide bounding box, we need a new intersection routine, but the interface is
           similar to the old one:
         </p>
+      </div>
+      <div></div>
+    </section>
 
-        <pre>
+    <pre>
 // Implementation in the dessert section. Also notice we are not returning the hit normal, because we won't be needing it.
 SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8;
-        </pre>
+    </pre>
 
+    <section>
+      <div>
         <p>
           Compared to organizing the tree for SIMD, once we crunch through the tree and reach the
           triangles stored in leaves, going wide is fairly straightforward. One slight subtlety is
@@ -1013,11 +1023,6 @@ Triangle_Pack_X8 :: struct {
         <p>
           Analogously to bounding boxes, we also need a new math routine for triangles:
         </p>
-
-        <pre>
-// Implementation in the dessert chapter.
-SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle_pack: Triangle_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8, hit_normal: Vec3x8;
-        </pre>
       </div>
       <div>
         <pre>
@@ -1047,7 +1052,14 @@ SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triang
 +----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
         </pre>
       </div>
+    </section>
 
+    <pre>
+// Implementation in the dessert chapter.
+SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle_pack: Triangle_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8, hit_normal: Vec3x8;
+    </pre>
+
+    <section>
       <div>
         <p>
           Note that right now we can not configure leaf heaviness with LEAF_TRIANGLE_COUNT, so let's restore
@@ -1116,8 +1128,27 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, i0: s64, i1: s64 {
           We can, however, write out the pseudocode for traversing the wide BVH. If you squint, it
           isn't all that different to what we have been doing so far:
         </p>
+      </div>
+      <div>
+        <div class="sidenote">
+          <p>
+            [19]: Why is this important? This is a hyperparameter you can tune. For our final
+            version of the code it ended up being 8, but the reason was consistency of results
+            between the SIMD implementations. The AVX backend actually benefitted speed-wise from
+            having 16 triangles in a leaf (and you can imagine AVX-512 benefiting even more), but we
+            wanted our BVH to have the same shape across implementations, so this number ended up
+            being a compromise between SSE/NEON and AVX. The consistency argument is maybe not all
+            that strong, it depends on how much you want to radiate the impression of deterministic
+            software. We wanted to have the same results, and the simplest way to achieve that was
+            to have the tree look the same, otherwise ordering of leaf nodes and triangles within
+            caused a ray to reflect elsewhere. Maybe there was something smarted we could have done,
+            I don't know.
+          </p>
+        </div>
+      </div>
+    </section>
 
-        <pre>
+    <pre>
 raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
     ray_origin    := primary_ray_origin;
     ray_direction := primary_ray_direction;
@@ -1207,8 +1238,10 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
     // We ran out of bounces and haven't hit a light.
     return { 0, 0, 0 };
 }
-        </pre>
+    </pre>
 
+    <section>
+      <div>
         <p>
           And that's a wrap! The next section is going to tie up some loose ends I didn't manage to weave in
           here, but otherwise this is a fairly complete picture of SIMD-ifying your raytracer. I unfortunately
@@ -1248,6 +1281,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
         <p>
           This section is not yet written. I want to talk about these miscellaneous things in it:
         </p>
+
         <pre>
 - Explain the slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
 - Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -1271,23 +1305,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
           I hereby conclude the conclusion.
         </p>
       </div>
-      <div>
-        <div class="sidenote">
-          <p>
-            [19]: Why is this important? This is a hyperparameter you can tune. For our final
-            version of the code it ended up being 8, but the reason was consistency of results
-            between the SIMD implementations. The AVX backend actually benefitted speed-wise from
-            having 16 triangles in a leaf (and you can imagine AVX-512 benefiting even more), but we
-            wanted our BVH to have the same shape across implementations, so this number ended up
-            being a compromise between SSE/NEON and AVX. The consistency argument is maybe not all
-            that strong, it depends on how much you want to radiate the impression of deterministic
-            software. We wanted to have the same results, and the simplest way to achieve that was
-            to have the tree look the same, otherwise ordering of leaf nodes and triangles within
-            caused a ray to reflect elsewhere. Maybe there was something smarted we could have done,
-            I don't know.
-          </p>
-        </div>
-      </div>
+      <div></div>
 
     </section>
   </main>
@@ -1296,7 +1314,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
   <footer>
     <p>Ján Tóth</p>
     <p>yanchith@withoutfearofwindorvertigo.com</p>
-    <p><a href="https://withoutfearofwindorvertigo.com">www.withoutfearofwindorvertigo.com</p>
+    <p><a href="https://withoutfearofwindorvertigo.com">www.withoutfearofwindorvertigo.com</a></p>
     <p><a href="https://github.com/yanchith">Some of my code on Github (github.com/yanchith)</a></p>
     <p><a href="https://www.twitch.tv/yanchibald">I occasionally stream programming on Twitch (www.twitch.tv/yanchibald)</a></p>
   </footer>
