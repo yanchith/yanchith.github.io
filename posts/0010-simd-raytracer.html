@@ -130,8 +130,6 @@
           build a fast daylight evaluator for our internal use
           [4].
         </p>
-
-        <h2>Ray Tracing</h2>
       </div>
       <div>
         <div class="sidenote">
@@ -149,6 +147,11 @@
           </p>
         </div>
       </div>
+
+      <div>
+        <h2>Ray Tracing</h2>
+      </div>
+      <div></div>
 
       <div>
         <p>
@@ -221,12 +224,6 @@
           losses (also called attenuation) multiply, and multiplication is commutative, this works
           out the same regardless of the direction we trace the ray in.
         </p>
-
-        <p>
-          So we trace rays from our measurement points, hoping they eventually reach sources of
-          light. These rays go in a straight line until they hit something. Depending on what was
-          hit, various things happen.
-        </p>
       </div>
       <div>
         <div class="sidenote">
@@ -239,6 +236,15 @@
 
       <div>
         <p>
+          So we trace rays from our measurement points, hoping they eventually reach sources of
+          light. These rays go in a straight line until they hit something. Depending on what was
+          hit, various things happen.
+        </p>
+      </div>
+      <div></div>
+
+      <div>
+        <p>
           If the ray hits a light reflecting surface, it bounces off of it, back into the scene. The
           new direction of the ray depends on the physical properties of the surface. Some surfaces
           reflect the ray as a mirror would, others deflect the ray in a random direction, and there
@@ -247,15 +253,6 @@
           [8], and cannot always be defined by a mathematical formula. For many realistic
           materials, the BRDF is actually a lookup table [9], measured by putting the material in
           a Gonioreflectometer.
-        </p>
-
-        <p>
-          If the ray hits a light source, it ends its journey. We read the light's value and apply
-          the attenuation the ray has accumulated when bouncing off of materials along its
-          path. Because each bounce attenuates the ray, we also can decide to terminate the ray
-          early after a certain amount of bounces, because even if it did reach a light source
-          eventually, the light's contribution through that particular ray would have been close to
-          zero. (XXX: Include this in the picture above?)
         </p>
       </div>
       <div>
@@ -266,10 +263,22 @@
           </p>
           <p>
             [9]: An example is the <a href="https://www.merl.com/research/downloads/BRDF">MERL
-            library of materials</a>.
+              library of materials</a>.
           </p>
         </div>
       </div>
+
+      <div>
+        <p>
+          If the ray hits a light source, it ends its journey. We read the light's value and apply
+          the attenuation the ray has accumulated when bouncing off of materials along its
+          path. Because each bounce attenuates the ray, we also can decide to terminate the ray
+          early after a certain amount of bounces, because even if it did reach a light source
+          eventually, the light's contribution through that particular ray would have been close to
+          zero. (XXX: Include this in the picture above?)
+        </p>
+      </div>
+      <div></div>
 
       <div>
         <p>
@@ -287,14 +296,6 @@
           have also been useful in our usecase [10], but we simply didn't have the time to pursue
           it.
         </p>
-
-        <h2>Raytracer Architecture, Appetizer</h2>
-
-        <p>
-          At a high level, a raytracer operates on a geometric description of the scene and a list
-          of rays it needs to compute on that scene. These do not necessarily change at the same
-          rate from frame to frame, and many real-time raytracers reason about that (but we won't).
-        </p>
       </div>
       <div>
         <div class="sidenote">
@@ -305,6 +306,17 @@
           </p>
         </div>
       </div>
+
+      <div>
+        <h2>Raytracer Architecture, Appetizer</h2>
+
+        <p>
+          At a high level, a raytracer operates on a geometric description of the scene and a list
+          of rays it needs to compute on that scene. These do not necessarily change at the same
+          rate from frame to frame, and many real-time raytracers reason about that (but we won't).
+        </p>
+      </div>
+      <div></div>
 
       <div>
         <p>
@@ -521,7 +533,17 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
           datastructure depends on the character of your data. We went with the BVH, because it doesn't have
           many assumptions and degrades gracefully with bad quality of input [15].
         </p>
+      </div>
+      <div>
+        <div class="sidenote">
+          <p>
+            [15]: We didn't want to constrain the rest of what we are going to build by choosing an
+            overly picky datastructure. This also helped us productize the daylighting evaluator later.
+          </p>
+        </div>
+      </div>
 
+      <div>
         <h2>Raytracer Architecture, Main Course</h2>
 
         <p>
@@ -536,14 +558,7 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
           unlike in binary search trees.
         </p>
       </div>
-      <div>
-        <div class="sidenote">
-          <p>
-            [15]: We didn't want to constrain the rest of what we are going to build by choosing an
-            overly picky datastructure. This also helped us productize the daylighting evaluator later.
-          </p>
-        </div>
-      </div>
+      <div></div>
 
       <div>
         <p>
@@ -840,12 +855,6 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
           I came up with it on my own, but it looks obvious in hindsight. Cursory internet search
           says other people also do this [17].
         </p>
-
-        <p>
-          However, before we get to the exciting wide BVH, there is one last piece of housekeeping. In the
-          previous version, both types of BVH nodes were stored in a single array and we interpreted their
-          contents based on the type tag.
-        </p>
       </div>
       <div>
         <div class="sidenote">
@@ -862,6 +871,15 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
 
       <div>
         <p>
+          However, before we get to the exciting wide BVH, there is one last piece of housekeeping. In the
+          previous version, both types of BVH nodes were stored in a single array and we interpreted their
+          contents based on the type tag.
+        </p>
+      </div>
+      <div></div>
+
+      <div>
+        <p>
           Since we are about to do SIMD (which arguably means rolling up our sleeves and becoming serious programmers), we
           would like to leave the heterogeneous tree nodes behind. There's two problems with the union in our nodes, the main one
           being the memory we have to load when we walk the tree. We want to make sure that each loaded byte and
@@ -871,7 +889,16 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
           without the overlay. The second problem is memory use. This is not such a big deal today
           [18], but still it would be nice if we allocated only what we used.
         </p>
+      </div>
+      <div>
+        <div class="sidenote">
+          <p>
+            [18]: Although the RAM prices are rather high right now.
+          </p>
+        </div>
+      </div>
 
+      <div>
         <p>
           Our new BVH has two kinds of nodes, each stored in their own array. The inner nodes contain indices
           that point into either inner or leaf nodes. The leaf nodes only contain triangle and material data.
@@ -965,13 +992,7 @@ Inner_Node :: struct {
           that the CPU would schedule both intersection tests in parallel.
         </p>
       </div>
-      <div>
-        <div class="sidenote">
-          <p>
-            [18]: Although the RAM prices are rather high right now.
-          </p>
-        </div>
-      </div>
+      <div></div>
 
       <div>
         <p>
@@ -1107,7 +1128,26 @@ SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triang
           structure, allowing us to index a span of leaf nodes. Now, as long as our LEAF_TRIANGLE_COUNT is a
           multiple of 8, we can once again say how deep or heavy the tree is [19].
         </p>
+      </div>
+      <div>
+        <div class="sidenote">
+          <p>
+            [19]: Why is this important? This is a hyperparameter you can tune. For our final
+            version of the code it ended up being 8, but the reason was consistency of results
+            between the SIMD implementations. The AVX backend actually benefitted speed-wise from
+            having 16 triangles in a leaf (and you can imagine AVX-512 benefiting even more), but we
+            wanted our BVH to have the same shape across implementations, so this number ended up
+            being a compromise between SSE/NEON and AVX. The consistency argument is maybe not all
+            that strong, it depends on how much you want to radiate the impression of deterministic
+            software. We wanted to have the same results, and the simplest way to achieve that was
+            to have the tree look the same, otherwise ordering of leaf nodes and triangles within
+            could cause a ray to reflect elsewhere. Maybe there was something smarter we could have done,
+            I don't know.
+          </p>
+        </div>
+      </div>
 
+      <div>
         <pre>
 BVH_Index :: struct {
     // 2 bits of tag to select the array.
@@ -1169,23 +1209,7 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, i0: s64, i1: s64 {
           isn't all that different to what we have been doing so far:
         </p>
       </div>
-      <div>
-        <div class="sidenote">
-          <p>
-            [19]: Why is this important? This is a hyperparameter you can tune. For our final
-            version of the code it ended up being 8, but the reason was consistency of results
-            between the SIMD implementations. The AVX backend actually benefitted speed-wise from
-            having 16 triangles in a leaf (and you can imagine AVX-512 benefiting even more), but we
-            wanted our BVH to have the same shape across implementations, so this number ended up
-            being a compromise between SSE/NEON and AVX. The consistency argument is maybe not all
-            that strong, it depends on how much you want to radiate the impression of deterministic
-            software. We wanted to have the same results, and the simplest way to achieve that was
-            to have the tree look the same, otherwise ordering of leaf nodes and triangles within
-            could cause a ray to reflect elsewhere. Maybe there was something smarter we could have done,
-            I don't know.
-          </p>
-        </div>
-      </div>
+      <div></div>
     </section>
 
     <pre>
