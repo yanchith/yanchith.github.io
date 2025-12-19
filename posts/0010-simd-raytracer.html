@@ -939,10 +939,12 @@ BVH_Index :: struct {
 }
 
 compose_inner_node_index :: (index: s64) -> BVH_Index {
+    assert(index &lt; 1 &lt;&lt; 62);
     return { (TAG_INNER &lt;&lt; 62) | cast(u64, index) };
 }
 
 compose_leaf_node_index :: (index: s64) -> BVH_Index {
+    assert(index &lt; 1 &lt;&lt; 62);
     return { (TAG_LEAF &lt;&lt; 62) | cast(u64, index) };
 }
 
@@ -1161,11 +1163,13 @@ BVH_Index :: struct {
 }
 
 compose_inner_node_index :: (index: s64) -> BVH_Index {
+    assert(index &lt; 1 &lt;&lt; 62);
     return { (TAG_INNER &lt;&lt; 62) | cast(u64, index) };
 }
 
 compose_leaf_node_index :: (start: s64, end: s64) -> BVH_Index {
-    // XXX: assert max sizes
+    assert(start &lt; 1 &lt;&lt; 31);
+    assert(end &lt; 1 &lt;&lt; 31);
     return { (TAG_LEAF &lt;&lt; 62) | cast(u64, start) &lt;&lt; 31 | cast(u64, end) };
 }
 

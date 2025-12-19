@@ -71,6 +71,7 @@ main p a {
 
 main section {
     display: grid;
+    /* TODO(jt): A 60/40 or 65/35 layout is also intersting, but then we have to fix all the pictures  */
     grid-template-columns: calc(50% - 25px) calc(50% - 25px);
     grid-column-gap: 50px;
 }
