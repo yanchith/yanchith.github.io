@@ -997,7 +997,10 @@ Inner_Node :: struct {
     right_index: BVH_Index;
 }
         </pre>
+      </div>
+      <div></div>
 
+      <div>
         <p>
           With nodes storing the bounding boxes of their child nodes, we now know whether our ray
           will hit the child nodes before we visit them. More importantly, the bounding boxes are
@@ -1055,7 +1058,16 @@ Inner_Node_X8 :: struct {
     child_indices: [8] BVH_Index;
 }
         </pre>
+      </div>
+      <div>
+        <picture>
+          <img src="./0010-wide_bvh.png" sizes="100vw"
+               srcset="./0010-wide_bvh.png 1000w" />
+          <p>Regular BVH to wide BVH transformation.</p>
+        </picture>
+      </div>
 
+      <div>
         <p>
           With the 8-wide bounding box, we need a new intersection routine, but the interface is
           similar to the old one:
@@ -1099,13 +1111,7 @@ Triangle_Pack_X8 :: struct {
           Analogously to bounding boxes, we also need a new math routine for triangles:
         </p>
       </div>
-      <div>
-        <picture>
-          <img src="./0010-wide_bvh.png" sizes="100vw"
-               srcset="./0010-wide_bvh.png 1000w" />
-          <p>Regular BVH to wide BVH transformation.</p>
-        </picture>
-      </div>
+      <div></div>
     </section>
 
     <pre>
