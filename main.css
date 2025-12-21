@@ -249,11 +249,31 @@ footer p {
     }
 
     main section p {
-        font-size: 15px;
+        font-size: 14px;
     }
 
     main section li {
-        font-size: 15px;
+        font-size: 14px;
+    }
+
+    main section picture > p {
+        font-size: 12px;
+    }
+
+    main section .videocontent > p {
+        font-size: 12px;
+    }
+
+    main section .sidenote > p {
+        font-size: 12px;
+    }
+
+    main > pre {
+        font-size: 12px;
+    }
+
+    main section pre {
+        font-size: 12px;
     }
 
     footer {
@@ -261,6 +281,6 @@ footer p {
     }
 
     footer p {
-        font-size: 15px;
+        font-size: 14px;
     }
 }

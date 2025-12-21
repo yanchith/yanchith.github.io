@@ -181,7 +181,12 @@
           measurement points in sufficient quantities.
         </p>
       </div>
-      <div>XXX: Picture</div>
+      <div>
+        <picture>
+          <img src="./0010-rt.png" sizes="100vw"
+               srcset="./0010-rt.png 1000w" />
+        </picture>
+      </div>
 
       <div>
         <p>
@@ -275,7 +280,7 @@
           path. Because each bounce attenuates the ray, we also can decide to terminate the ray
           early after a certain amount of bounces, because even if it did reach a light source
           eventually, the light's contribution through that particular ray would have been close to
-          zero. (XXX: Include this in the picture above?)
+          zero.
         </p>
       </div>
       <div></div>
@@ -545,7 +550,10 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
 
       <div>
         <h2>Raytracer Architecture, Main Course</h2>
+      </div>
+      <div></div>
 
+      <div>
         <p>
           The BVH is a tree where each node has bounding volume geometrically containing the node's
           contents. This bounding volume is usually a parametric shape, such as an axis-aligned box
@@ -558,7 +566,13 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
           unlike in binary search trees.
         </p>
       </div>
-      <div></div>
+      <div>
+        <picture>
+          <img src="./0010-bvh.png" sizes="100vw"
+               srcset="./0010-bvh.png 1000w" />
+          <p>Tree hierarchy (left); Geometry view (right)</p>
+        </picture>
+      </div>
 
       <div>
         <p>
@@ -578,8 +592,6 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
             with axis-aligned boxes, because they are simple and reasonably good.
           </p>
         </div>
-
-        <div>XXX: Picture</div>
       </div>
 
       <div>
@@ -1088,32 +1100,11 @@ Triangle_Pack_X8 :: struct {
         </p>
       </div>
       <div>
-        <pre>
-(XXX: Redraw picture and point out where the bounding volumes are stored)
-
-                 Conceptual Tree                                      Physical Tree
-
-                     +----+                                              +----+
-                     |    |                           +------------------|    |------------------+
-                     |    |                           |     +------------|    |------------+     |
-                     +----+                           |     |     +------+----+------+     |     |
-                      |  |                            |     |     |       |  |       |     |     |
-         +----+       |  |       +----+               |     |     |     +-+  --+     |     |     |
-         |    |-------+  +-------|    |               |     |     |     |      |     |     |     |
-         |    |                  |    |               |     |     |     |      |     |     |     |
-         +----+                  +----+               |     |     |     |      |     |     |     |
-          |  |                    |  |                |     |     |     |      |     |     |     |
-   +----+ |  | +----+      +----+ |  | +----+         |     |     |     |      |     |     |     |
-   |    |-+  +-|    |      |    |-+  +-|    |         |     |     |     |      |     |     |     |
-   |    |      |    |      |    |      |    |         |     |     |     |      |     |     |     |
-   +----+      +----+      +----+      +----+         |     |     |     |      |     |     |     |
-    |  |        |  |        |  |        |  |          |     |     |     |      |     |     |     |
-    |  |        |  |        |  |        |  |          |     |     |     |      |     |     |     |
-+----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
-|    ||    ||    ||    ||    ||    ||    ||    |    |    ||    ||    ||    ||    ||    ||    ||    |
-|    ||    ||    ||    ||    ||    ||    ||    |    |    ||    ||    ||    ||    ||    ||    ||    |
-+----++----++----++----++----++----++----++----+    +----++----++----++----++----++----++----++----+
-        </pre>
+        <picture>
+          <img src="./0010-wide_bvh.png" sizes="100vw"
+               srcset="./0010-wide_bvh.png 1000w" />
+          <p>Regular BVH to wide BVH transformation.</p>
+        </picture>
       </div>
     </section>
 
@@ -1351,7 +1342,7 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
         </p>
 
         <pre>
-- Explain the slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
+- Explain slab method and its SIMD form. https://tavianator.com/2022/ray_box_boundary.html.
 - Explain Moller-Trumbore and its SIMD form. https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 - SAH optimization (Credit DH)
 - Sort bounding boxes before pushing on stack.
@@ -1370,11 +1361,10 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
 
         <h2>Conclusion</h2>
         <p>
-          I hereby conclude the conclusion.
+          This section is not yet written. I hereby conclude the conclusion.
         </p>
       </div>
       <div></div>
-
     </section>
   </main>
 
