@@ -26,14 +26,15 @@
           programming knowledge. To not leave people behind, I'll explain some basics as we go, but
           to get deeper understanding, I wholeheartedly recommend doing your own research. A good
           place to start is the <a href="https://raytracing.github.io/">Raytracing Weekend book
-          series</a>. For computer knowledge, my long-form recommendation for the patient viewer is
-          Casey Muratori's <a href="https://guide.handmadehero.org/">Handmade Hero</a>
+          series</a>. For computer knowledge (virtual memory, cache lines, SIMD), my long-form
+          recommendation for the patient viewer is Casey
+          Muratori's <a href="https://guide.handmadehero.org/">Handmade Hero</a>
           and <a href="https://computerenhance.com">Computer Enhance</a> series.
         </p>
 
         <p>
           If, on the other hand, you would like to skip over to "the good part", you can go to the
-          section Raytracer Architecture, Second Main Course. <!-- XXX: Link -->
+          section Raytracer Architecture, Second Main Course.
         </p>
 
         <p>
@@ -486,13 +487,13 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
 
       <div>
         <p>
-          We can also quite easily make the code SIMD. Going wide can happen either over rays or
+          We can also quite easily make the code SIMD [13]. Going wide can happen either over rays or
           geometries. When going wide over rays, we not only get the obvious benefit of testing
           multiple rays against geometry, but there is also a subtler compounding effect: we get a
           lot more value out of each geometry we load, because we test it against multiple rays at a
           time. Problems arise with some rays finishing after less bounces than others, making the
           contents of our wide registers be both active and finished rays. We either have to do
-          something about that [13], or accept the wasted work. Going wide over rays was the route
+          something about that [14], or accept the wasted work. Going wide over rays was the route
           taken by Casey Muratori in his <a href="https://guide.handmadehero.org/ray/">Handmade Ray
           educational miniseries</a>.
         </p>
@@ -500,7 +501,18 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
       <div>
         <div class="sidenote">
           <p>
-            [13]: After we have made a pass over all geometry and we know which rays hit what, we
+            [13]: Single Instruction, Multiple Data. Fully explaining it is beyond the our scope,
+            but the gist is you can make your compiler emit instructions that operate on 128/256/512
+            bits at the same time. These bits are split into lanes depending on the instruction,
+            e.g. 128 bits can be split into four 32-bit floating point lanes. The main benefit is
+            that the CPU core does more stuff per each decoded instruction. Like multi-threading,
+            SIMD is a way of making computers go fast. One challenge with SIMD is that it can rarely
+            be applied as an afterthought (unlike multi-threading), because it requires you to lay
+            out the data in a specific way. Another challenge with SIMD is what I call "thinking in
+            SIMD": branching becomes masking, small lookup tables become gather operations, etc.
+          </p>
+          <p>
+            [14]: After we have made a pass over all geometry and we know which rays hit what, we
             could write out the results for finished rays and load in new ones into our wide
             registers. This would incur some management and complexity overhead, but would also mean
             we utilize memory and SIMD to the fullest right until the very end where we run out of
@@ -513,7 +525,7 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
         <p>
           Unlike parallelizing on rays, going wide over geometry doesn't ameliorate the cost of
           memory traffic to the CPU. Each wide geometric primitive is loaded to be tested against a
-          ray, evicted by subsequent loads [14], only to be loaded again when the next ray is
+          ray, evicted by subsequent loads [15], only to be loaded again when the next ray is
           going to need that exact same memory. It still is an improvement over the non-SIMD
           version, as we at least compute more intersections at a time. It is also simpler to think
           about (unless you think about SIMD a lot), because the nature of the code is still mostly
@@ -523,7 +535,7 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
       <div>
         <div class="sidenote">
           <p>
-            [14]: The exact level of eviction (register file, L1, L2, ...) gets worse with the size
+            [15]: The exact level of eviction (register file, L1, L2, ...) gets worse with the size
             of the working set.
           </p>
         </div>
@@ -536,13 +548,13 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
           and calculations per bounce. To get away from the O(m*n), we use acceleration structures to help
           with eliminating impossible hits, such as Bounding Volume Hierarchies (BVH) or Octrees. Choosing a
           datastructure depends on the character of your data. We went with the BVH, because it doesn't have
-          many assumptions and degrades gracefully with bad quality of input [15].
+          many assumptions and degrades gracefully with bad quality of input [16].
         </p>
       </div>
       <div>
         <div class="sidenote">
           <p>
-            [15]: We didn't want to constrain the rest of what we are going to build by choosing an
+            [16]: We didn't want to constrain the rest of what we are going to build by choosing an
             overly picky datastructure. This also helped us productize the daylighting evaluator later.
           </p>
         </div>
@@ -576,7 +588,7 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
 
       <div>
         <p>
-          In practice, a bounding volume can be any volumetric geometry [16] and the leaf nodes can
+          In practice, a bounding volume can be any volumetric geometry [17] and the leaf nodes can
           store whatever we want, but our raytracer used axis-aligned bounding boxes and triangles,
           so we are going to do the same here.
         </p>
@@ -584,7 +596,7 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
       <div>
         <div class="sidenote">
           <p>
-            [16]: In addition to axis-aligned bounding boxes, bounding spheres and oriented bounding
+            [17]: In addition to axis-aligned bounding boxes, bounding spheres and oriented bounding
             boxes are also often used. Choosing is about making a tradeoff between how much culling
             the bounding volume does compared to its memory footprint. Spheres are smallest in
             memory, but do least culling. Oriented boxes do the most culling, but take up the most
@@ -865,13 +877,13 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
           pulling the child nodes' bounding volumes into the parent node. In some sense, this is the
           core idea of the raytracer codebase (and this article). At the time I was very happy that
           I came up with it on my own, but it looks obvious in hindsight. Cursory internet search
-          says other people also do this [17].
+          says other people also do this [18].
         </p>
       </div>
       <div>
         <div class="sidenote">
           <p>
-            [17]: <a href="https://chipsandcheese.com/p/rdna-4s-raytracing-improvements">Chips &
+            [18]: <a href="https://chipsandcheese.com/p/rdna-4s-raytracing-improvements">Chips &
               Cheese</a> talks about AMD raytracing hardware having 8-wide BVH.
             Also, <a href="https://jo.dreggn.org/home/2008_qbvh.pdf">this 2008 paper</a> essentially
             talks about the same thing as we did. Most
@@ -899,13 +911,13 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
           align them to cache lines and make sure they do not straddle cache line boundaries. This is not
           impossible to do for the heterogeneous tree, but at least for me it is simpler to think about it
           without the overlay. The second problem is memory use. This is not such a big deal today
-          [18], but still it would be nice if we allocated only what we used.
+          [19], but still it would be nice if we allocated only what we used.
         </p>
       </div>
       <div>
         <div class="sidenote">
           <p>
-            [18]: Although the RAM prices are rather high right now.
+            [19]: Although the RAM prices are rather high right now.
           </p>
         </div>
       </div>
@@ -1124,13 +1136,13 @@ SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triang
           Note that right now we can not configure leaf heaviness with LEAF_TRIANGLE_COUNT, so let's restore
           that by modifying the BVH_Index pointing into leaf_nodes to have a 2:31:31 (tag:start:end)
           structure, allowing us to index a span of leaf nodes. Now, as long as our LEAF_TRIANGLE_COUNT is a
-          multiple of 8, we can once again say how deep or heavy the tree is [19].
+          multiple of 8, we can once again say how deep or heavy the tree is [20].
         </p>
       </div>
       <div>
         <div class="sidenote">
           <p>
-            [19]: Why is this important? This is a hyperparameter you can tune. For our final
+            [20]: Why is this important? This is a hyperparameter you can tune. For our final
             version of the code it ended up being 8, but the reason was consistency of results
             between the SIMD implementations. The AVX backend actually benefitted speed-wise from
             having 16 triangles in a leaf (and you can imagine AVX-512 benefiting even more), but we
