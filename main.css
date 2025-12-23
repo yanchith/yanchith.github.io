@@ -35,6 +35,13 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: "LiberationMono-Bold";
+    src: url("./LiberationMono-Bold.ttf") format("truetype");
+    font-weight: bold;
+    font-style: normal;
+}
+
 body {
     font-family: "IBMPlexMono-Light", "Courier New", Arial;
     overflow-x: hidden;
@@ -95,6 +102,11 @@ main > pre {
     overflow-x: auto;
 }
 
+main > pre > b {
+    font-family: "LiberationMono-Bold";
+    font-weight: bold;
+}
+
 main section pre {
     font-size: 14px;
     font-family: "LiberationMono-Regular";
@@ -103,6 +115,19 @@ main section pre {
     border: 1px solid #e0e0e0;
 
     overflow-x: auto;
+}
+
+main section pre > b {
+    font-family: "LiberationMono-Bold";
+    font-weight: bold;
+}
+
+span.codelit {
+    color: #5070d0
+}
+
+span.codecomment {
+    color: #907070;
 }
 
 main section li {

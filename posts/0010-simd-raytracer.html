@@ -346,37 +346,37 @@
     </section>
 
     <pre>
-Sphere :: struct {
+Sphere :: <b>struct</b> {
     position: Vec3;
     radius:   f32;
 }
 
-Plane :: struct {
+Plane :: <b>struct</b> {
     normal: Vec3;
     d:      f32;
 }
 
-AABox :: struct {
+AABox :: <b>struct</b> {
     min: Vec3;
     max: Vec3;
 }
 
-Material_Type :: enum u32 {
-    LIGHT_SOURCE :: 0;
-    LAMBERTIAN   :: 1;
-    // ...
+Material_Type :: <b>enum</b> u32 {
+    LIGHT_SOURCE :: <span class="codelit">0</span>;
+    LAMBERTIAN   :: <span class="codelit">1</span>;
+    <span class="codecomment">// ...</span>
 }
 
-Material :: struct {
+Material :: <b>struct</b> {
     type: Material_Type;
     p0: f32;
     p1: f32;
     p2: f32;
 
-    #overlay (p0) color: Vec3;
+    <b>#overlay</b> (p0) color: Vec3;
 }
 
-Scene :: struct {
+Scene :: <b>struct</b> {
     spheres:          [..] Sphere;
     sphere_materials: [..] Material;
 
@@ -390,60 +390,60 @@ Scene :: struct {
 raytrace :: (scene: Scene, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
     ray_origin    := primary_ray_origin;
     ray_direction := primary_ray_direction;
-    ray_color     := Vec3.{ 1, 1, 1 };
+    ray_color     := Vec3.{ <span class="codelit">1</span>, <span class="codelit">1</span>, <span class="codelit">1</span> };
 
-    for 0..max_bounces - 1 {
+    <b>for</b> <span class="codelit">0</span>..max_bounces - <span class="codelit">1</span> {
         hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
-        for sphere: scene.spheres {
+        <b>for</b> sphere: scene.spheres {
             hit, distance, normal := ray_sphere_intersection(ray_origin, ray_direction, sphere);
-            if hit && distance &lt; hit_distance {
+            <b>if</b> hit && distance &lt; hit_distance {
                 hit_distance = distance;
                 hit_normal   = normal;
-                hit_material = sphere_materials[it_index];
+                hit_material = sphere_materials[<b>it_index</b>];
             }
         }
 
-        for plane: scene.planes {
+        <b>for</b> plane: scene.planes {
             hit, distance, normal := ray_plane_intersection(ray_origin, ray_direction, plane);
-            if hit && distance &lt; hit_distance {
+            <b>if</b> hit && distance &lt; hit_distance {
                 hit_distance = distance;
                 hit_normal   = normal;
-                hit_material = plane_materials[it_index];
+                hit_material = plane_materials[<b>it_index</b>];
             }
         }
 
-        for aabox: scene.aaboxes {
+        <b>for</b> aabox: scene.aaboxes {
             hit, distance, normal := ray_aabox_intersection(ray_origin, ray_direction, aabox);
-            if hit && distance &lt; hit_distance {
+            <b>if</b> hit && distance &lt; hit_distance {
                 hit_distance = distance;
                 hit_normal   = normal;
-                hit_material = aabox_materials[it_index];
+                hit_material = aabox_materials[<b>it_index</b>];
             }
         }
 
-        if hit_distance == FLOAT32_MAX {
-           // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
-           ray_color *= { 0.2, 0.1, 0.4 };
-           return ray_color;
+        <b>if</b> hit_distance == FLOAT32_MAX {
+           <span class="codecomment">// The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...</span>
+           ray_color *= { <span class="codelit">0.2</span>, <span class="codelit">0.1</span>, <span class="codelit">0.4</span> };
+           <b>return</b> ray_color;
         }
 
-        if hit_material.type == .LIGHT_SOURCE {
+        <b>if</b> hit_material.type == .LIGHT_SOURCE {
             ray_color *= hit_material.color;
-            return ray_color;
-        } else {
+            <b>return</b> ray_color;
+        } <b>else</b> {
             ray_color = attenuate(ray_color, ray_direction, hit_normal, hit_material);
             ray_origin, ray_direction = bounce(ray_origin, ray_direction, hit_distance, hit_normal, hit_material);
         }
     }
 
-    // We ran out of bounces and haven't hit a light.
-    return { 0, 0, 0 };
+    <span class="codecomment">// We ran out of bounces and haven't hit a light.</span>
+    <b>return</b> { <span class="codelit">0</span>, <span class="codelit">0</span>, <span class="codelit">0</span> };
 }
 
-// We'll define some of these later. For now note that the interface is roughly this.
+<span class="codecomment">// We'll define some of these later. For now note that the interface is roughly this.</span>
 ray_sphere_intersection :: (ray_origin: Vec3, ray_direction: Vec3, sphere: Sphere) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 ray_plane_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, plane: Plane) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 ray_aabox_intersection  :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
@@ -613,108 +613,108 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
     </section>
 
     <pre>
-Triangle :: struct {
+Triangle :: <b>struct</b> {
     v0: Vec3;
     v1: Vec3;
     V2: Vec3;
 }
 
-AABox :: struct {
+AABox :: <b>struct</b> {
     min: Vec3;
     max: Vec3;
 }
 
-Node :: struct {
+Node :: <b>struct</b> {
     bbox: AABox;
 
     type: Node_Type;
     data: Node_Data;
 
-    // This union is wasteful, but helps keep the pseudocode concise.
-    // In reality, we want to store inner nodes and leaves in separate arrays. We'll do that soon.
-    Node_Data :: union {
+    <span class="codecomment">// This union is wasteful, but helps keep the pseudocode concise.</span>
+    <span class="codecomment">// In reality, we want to store inner nodes and leaves in separate arrays. We'll do that soon.</span>
+    Node_Data :: <b>union</b> {
         inner: Inner_Node;
         leaf:  Leaf_Node;
     }
 
-    Node_Type :: enum {
-        INNER :: 0;
-        LEAF  :: 1;
+    Node_Type :: <b>enum</b> {
+        INNER :: <span class="codelit">0</span>;
+        LEAF  :: <span class="codelit">1</span>;
     }
 
-    Inner_Node :: struct {
+    Inner_Node :: <b>struct</b> {
         left: s64;
         right: s64;
     }
 
-    Leaf_Node :: struct {
+    Leaf_Node :: <b>struct</b> {
         count: s64;
         triangles: [LEAF_TRIANGLE_COUNT] Triangle;
         materials: [LEAF_TRIANGLE_COUNT] Material;
     }
 }
 
-BVH :: struct {
+BVH :: <b>struct</b> {
     nodes: [..] Node;
 }
 
 raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
     ray_origin    := primary_ray_origin;
     ray_direction := primary_ray_direction;
-    ray_color     := Vec3.{ 1, 1, 1 };
+    ray_color     := Vec3.{ <span class="codelit">1</span>, <span class="codelit">1</span>, <span class="codelit">1</span> };
 
-    for 0..max_bounces - 1 {
+    <b>for</b> <span class="codelit">0</span>..max_bounces - <span class="codelit">1</span> {
         hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
         search_stack: [..] s64;
 
-        array_add(*search_stack, 0); // [0] is the root of the tree
+        array_add(*search_stack, <span class="codelit">0</span>); <span class="codecomment">// [0] is the root of the tree</span>
 
-        while search_stack.count {
+        <b>while</b> search_stack.count {
             node_index := pop(*search_stack);
             node := *bvh.nodes[node_index];
 
             node_hit, node_distance, _ = ray_aabox_intersection(ray_origin, ray_direction, node.bbox);
-            if node_hit && node_distance &lt; hit_distance {
-                if node.type == .INNER {
+            <b>if</b> node_hit && node_distance &lt; hit_distance {
+                <b>if</b> node.type == .INNER {
                     array_add(*search_stack, node.inner.left);
                     array_add(*search_stack, node.inner.right);
-                } else {
-                    for 0..node.leaf.count - 1 {
-                        triangle := node.leaf.triangles[it];
+                } <b>else</b> {
+                    <b>for</b> <span class="codelit">0</span>..node.leaf.count - <span class="codelit">1</span> {
+                        triangle := node.leaf.triangles[<b>it</b>];
                         hit, distance, normal := ray_triangle_intersection(ray_origin, ray_direction, triangle);
-                        if hit && distance &lt; hit_distance {
+                        <b>if</b> hit && distance &lt; hit_distance {
                             hit_distance = distance;
                             hit_normal   = normal;
-                            hit_material = node.leaf.materials[it];
+                            hit_material = node.leaf.materials[<b>it</b>];
                         }
                     }
                 }
             }
         }
 
-        if hit_distance == FLOAT32_MAX {
-           // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
-           ray_color *= { 0.2, 0.1, 0.4 };
-           return ray_color;
+        <b>if</b> hit_distance == FLOAT32_MAX {
+           <span class="codecomment">// The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...</span>
+           ray_color *= { <span class="codelit">0.2</span>, <span class="codelit">0.1</span>, <span class="codelit">0.4</span> };
+           <b>return</b> ray_color;
         }
 
-        if hit_material.type == .LIGHT_SOURCE {
+        <b>if</b> hit_material.type == .LIGHT_SOURCE {
             ray_color *= hit_material.color;
-            return ray_color;
-        } else {
+            <b>return</b> ray_color;
+        } <b>else</b> {
             ray_color = attenuate(ray_color, ray_direction, hit_normal, hit_material);
             ray_origin, ray_direction = bounce(ray_origin, ray_direction, hit_distance, hit_normal, hit_material);
         }
     }
 
-    // We ran out of bounces and haven't hit a light.
-    return { 0, 0, 0 };
+    <span class="codecomment">// We ran out of bounces and haven't hit a light.</span>
+    <b>return</b> { <span class="codelit">0</span>, <span class="codelit">0</span>, <span class="codelit">0</span> };
 }
 
-// We'll define some of these later. For now note that the interface is roughly this.
+<span class="codecomment">// We'll define some of these later. For now note that the interface is roughly this.</span>
 ray_aabox_intersection    :: (ray_origin: Vec3, ray_direction: Vec3, aabox: AABox) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle: Triangle) -> hit: bool, hit_distance: f32, hit_normal: Vec3;
 attenuate :: (color: Vec3, direction: Vec3, normal: Vec3, material: Material) -> Vec3;
@@ -742,15 +742,15 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
     bvh: BVH;
     array_add(*bvh.nodes);
 
-    Frame :: struct {
+    Frame :: <b>struct</b> {
         node_index: s64;
         triangles: [] Triangle;
     }
 
     stack: [..] Frame;
-    array_add(*stack, { 0, _triangles });
+    array_add(*stack, { <span class="codelit">0</span>, _triangles });
 
-    while stack.count {
+    <b>while</b> stack.count {
         frame := pop(*stack);
 
         node_index := frame.node_index;
@@ -758,15 +758,15 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
 
         node := *bvh.nodes[node_index];
 
-        if triangles.count &lt;= LEAF_TRIANGLE_COUNT {
+        <b>if</b> triangles.count &lt;= LEAF_TRIANGLE_COUNT {
             node.bbox = aabox_from_triangles(triangles);
             node.type = .LEAF;
 
             node.leaf.triangle_count = triangles.count;
             array_view_copy(*node.leaf.triangles, triangles, triangles.count);
-        } else {
+        } <b>else</b> {
             left_index  := bvh.nodes.count;
-            right_index := bvh.nodes.count + 1;
+            right_index := bvh.nodes.count + <span class="codelit">1</span>;
 
             array_add(*bvh.nodes);
             array_add(*bvh.nodes);
@@ -781,34 +781,34 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
             size_y := node.bbox.max.y - node.bbox.min.y;
             size_z := node.bbox.max.z - node.bbox.min.z;
 
-            // Compare one of the triangle points.
-            // We could compare centroids instead.
+            <span class="codecomment">// Compare one of the triangle points.</span>
+            <span class="codecomment">// We could compare centroids instead.</span>
             compare_x :: (a: Triangle, b: Triangle) -> f32 {
-                return a.v0.x - b.v0.x;
+                <b>return</b> a.v0.x - b.v0.x;
             }
             compare_y :: (a: Triangle, b: Triangle) -> f32 {
-                return a.v0.y - b.v0.y;
+                <b>return</b> a.v0.y - b.v0.y;
             }
             compare_z :: (a: Triangle, b: Triangle) -> f32 {
-                return a.v0.z - b.v0.z;
+                <b>return</b> a.v0.z - b.v0.z;
             }
 
-            if size_x > size_y && size_x > size_z {
+            <b>if</b> size_x > size_y && size_x > size_z {
                 quick_sort(triangles, compare_x);
-            } else if size_y > size_z {
+            } <b>else</b> <b>if</b> size_y > size_z {
                 quick_sort(triangles, compare_y);
-            } else {
+            } <b>else</b> {
                 quick_sort(triangles, compare_z);
             }
 
-            left, right := split_array_view(triangles, triangles.count / 2);
+            left, right := split_array_view(triangles, triangles.count / <span class="codelit">2</span>);
 
             array_add(*stack, { left_index, left });
             array_add(*stack, { right_index, right });
         }
     }
 
-    return bvh;
+    <b>return</b> bvh;
 }
         </pre>
 
@@ -917,55 +917,54 @@ make_bvh :: (_triangles: [] Triangle) -> BVH {
         </p>
 
         <pre>
-BVH :: struct {
+BVH :: <b>struct</b> {
     inner_nodes: [..] Inner_Node;
     leaf_nodes:  [..] Leaf_Node;
 }
 
-Inner_Node :: struct {
+Inner_Node :: <b>struct</b> {
     bbox: AABox;
 
     left: BVH_Index;
     right: BVH_Index;
 }
 
-Leaf_Node :: struct {
+Leaf_Node :: <b>struct</b> {
     bbox: AABox;
 
     count: s64;
     triangles: [LEAF_TRIANGLE_COUNT] Triangle;
 
-
-    // For now the materials are along for the ride,
-    // but we'll store them on a cold cache line soon.
+    <span class="codecomment">// For now the materials are along for the ride,</span>
+    <span class="codecomment">// but we'll store them on a cold cache line soon.</span>
     materials: [LEAF_TRIANGLE_COUNT] Material;
 }
 
-// 2:62; 2 bits of tag to select the array, 62 bits to index into the array.
-BVH_Index :: struct {
+<span class="codecomment">// 2:62; 2 bits of tag to select the array, 62 bits to index into the array.</span>
+BVH_Index :: <b>struct</b> {
     value: u64;
 
-    TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
-    TAG_INNER: u64 : 1; // INNER indices point to the inner_nodes array.
-    TAG_LEAF:  u64 : 2; // LEAF indices point to the leaf_nodes array.
+    TAG_NIL:   u64 : <span class="codelit">0</span>; <span class="codecomment">// There is nothing behind indices tagged with NIL.</span>
+    TAG_INNER: u64 : <span class="codelit">1</span>; <span class="codecomment">// INNER indices point to the inner_nodes array.</span>
+    TAG_LEAF:  u64 : <span class="codelit">2</span>; <span class="codecomment">// LEAF indices point to the leaf_nodes array.</span>
 }
 
 compose_inner_node_index :: (index: s64) -> BVH_Index {
-    assert(index &lt; 1 &lt;&lt; 62);
-    return { (TAG_INNER &lt;&lt; 62) | cast(u64, index) };
+    assert(index &lt; <span class="codelit">1</span> &lt;&lt; <span class="codelit">62</span>);
+    <b>return</b> { (TAG_INNER &lt;&lt; <span class="codelit">62</span>) | <b>cast</b>(u64, index) };
 }
 
 compose_leaf_node_index :: (index: s64) -> BVH_Index {
-    assert(index &lt; 1 &lt;&lt; 62);
-    return { (TAG_LEAF &lt;&lt; 62) | cast(u64, index) };
+    assert(index &lt; <span class="codelit">1</span> &lt;&lt; <span class="codelit">62</span>);
+    <b>return</b> { (TAG_LEAF &lt;&lt; <span class="codelit">62</span>) | <b>cast</b>(u64, index) };
 }
 
 decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index: s64 {
-    MASK: u64 : (1 &lt;&lt; 62) - 1;
+    MASK: u64 : (<span class="codelit">1</span> &lt;&lt; <span class="codelit">62</span>) - <span class="codelit">1</span>;
 
-    tag   := bvh_index.value &gt;&gt; 62;
-    index := cast(s64, MASK & bvh_index.value);
-    return tag, index;
+    tag   := bvh_index.value &gt;&gt; <span class="codelit">62</span>;
+    index := <b>cast</b>(s64, MASK & bvh_index.value);
+    <b>return</b> tag, index;
 }
         </pre>
 
@@ -989,7 +988,7 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, index: s64 {
         </p>
 
         <pre>
-Inner_Node :: struct {
+Inner_Node :: <b>struct</b> {
     left_bbox:  AABox;
     right_bbox: AABox;
 
@@ -1017,7 +1016,7 @@ Inner_Node :: struct {
         </p>
 
         <pre>
-Inner_Node_X8 :: struct {
+Inner_Node_X8 :: <b>struct</b> {
     child_bbox0: AABox;
     child_bbox1: AABox;
     child_bbox2: AABox;
@@ -1045,17 +1044,17 @@ Inner_Node_X8 :: struct {
         </p>
 
         <pre>
-AABox_Pack_X8 :: struct {
-    min: Vec3x8;   #align 64
+AABox_Pack_X8 :: <b>struct</b> {
+    min: Vec3x8;   <b>#align</b> <span class="codelit">64</span>;
     max: Vec3x8;
 }
 
-// The node is aligned to the x64 cache line size, and spans 4 cache lines.
-Inner_Node_X8 :: struct {
-    // Hot, 3 cache lines
+<span class="codecomment">// The node is aligned to the x64 cache line size, and spans 4 cache lines.</span>
+Inner_Node_X8 :: <b>struct</b> {
+    <span class="codecomment">// Hot, 3 cache lines</span>
     aabox_pack: AABox_Pack_X8;
-    // Also likely hot, 1 cache line
-    child_indices: [8] BVH_Index;
+    <span class="codecomment">// Also likely hot, 1 cache line</span>
+    child_indices: [<span class="codelit">8</span>] BVH_Index;
 }
         </pre>
       </div>
@@ -1077,7 +1076,7 @@ Inner_Node_X8 :: struct {
     </section>
 
     <pre>
-// Implementation in the dessert section. Also notice we are not returning the hit normal, because we won't be needing it.
+<span class="codecomment">// Implementation in the dessert section. Also notice we are not returning the hit normal, because we won't be needing it.</span>
 SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pack: AABox_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8;
     </pre>
 
@@ -1091,17 +1090,17 @@ SIMD_ray_aabox_intersection :: (ray_origin: Vec3, ray_direction: Vec3, aabox_pac
         </p>
 
         <pre>
-Leaf_Node_X8 :: struct {
-    // Hot, 5 cache lines
+Leaf_Node_X8 :: <b>struct</b> {
+    <span class="codecomment">// Hot, 5 cache lines</span>
     triangle_pack: Triangle_Pack_X8;
     triangle_mask: u32x8;
 
-    // Cold, 2 cache lines. We could also store materials out of band.
-    materials: [8] Material;
+    <span class="codecomment">// Cold, 2 cache lines. We could also store materials out of band.</span>
+    materials: [<span class="codelit">8</span>] Material;
 }
 
-Triangle_Pack_X8 :: struct {
-    v0: Vec3x8;    #align 64;
+Triangle_Pack_X8 :: <b>struct</b> {
+    v0: Vec3x8;    <b>#align</b> <span class="codelit">64</span>;
     v1: Vec3x8;
     v2: Vec3x8;
 }
@@ -1115,7 +1114,7 @@ Triangle_Pack_X8 :: struct {
     </section>
 
     <pre>
-// Implementation in the dessert chapter.
+<span class="codecomment">// Implementation in the dessert chapter.</span>
 SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triangle_pack: Triangle_Pack_X8) -> hit_mask: u32x8, hit_distance: f32x8, hit_normal: Vec3x8;
     </pre>
 
@@ -1148,42 +1147,42 @@ SIMD_ray_triangle_intersection :: (ray_origin: Vec3, ray_direction: Vec3, triang
 
       <div>
         <pre>
-BVH_Index :: struct {
-    // 2 bits of tag to select the array.
-    // If indexing into inner nodes, 62 bits of index.
-    // If indexing into leaf nodes, 31 bits of start and 31 bits of end.
+BVH_Index :: <b>struct</b> {
+    <span class="codecomment">// 2 bits of tag to select the array.</span>
+    <span class="codecomment">// If indexing into inner nodes, 62 bits of index.</span>
+    <span class="codecomment">// If indexing into leaf nodes, 31 bits of start and 31 bits of end.</span>
     value: u64;
 
-    TAG_NIL:   u64 : 0; // There is nothing behind indices tagged with NIL.
-    TAG_INNER: u64 : 1; // INNER indices point to the inner_nodes array.
-    TAG_LEAF:  u64 : 2; // LEAF indices point to the leaf_nodes array.
+    TAG_NIL:   u64 : <span class="codelit">0</span>; <span class="codecomment">// There is nothing behind indices tagged with NIL.</span>
+    TAG_INNER: u64 : <span class="codelit">1</span>; <span class="codecomment">// INNER indices point to the inner_nodes array.</span>
+    TAG_LEAF:  u64 : <span class="codelit">2</span>; <span class="codecomment">// LEAF indices point to the leaf_nodes array.</span>
 }
 
 compose_inner_node_index :: (index: s64) -> BVH_Index {
-    assert(index &lt; 1 &lt;&lt; 62);
-    return { (TAG_INNER &lt;&lt; 62) | cast(u64, index) };
+    assert(index &lt; <span class="codelit">1</span> &lt;&lt; <span class="codelit">62</span>);
+    <b>return</b> { (TAG_INNER &lt;&lt; <span class="codelit">62</span>) | <b>cast</b>(u64, index) };
 }
 
 compose_leaf_node_index :: (start: s64, end: s64) -> BVH_Index {
-    assert(start &lt; 1 &lt;&lt; 31);
-    assert(end &lt; 1 &lt;&lt; 31);
-    return { (TAG_LEAF &lt;&lt; 62) | cast(u64, start) &lt;&lt; 31 | cast(u64, end) };
+    assert(start &lt; <span class="codelit">1</span> &lt;&lt; <span class="codelit">31</span>);
+    assert(end &lt; <span class="codelit">1</span> &lt;&lt; <span class="codelit">31</span>);
+    <b>return</b> { (TAG_LEAF &lt;&lt; <span class="codelit">62</span>) | <b>cast</b>(u64, start) &lt;&lt; <span class="codelit">31</span> | <b>cast</b>(u64, end) };
 }
 
 decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, i0: s64, i1: s64 {
-    INNER_MASK: u64 : (1 &lt;&lt; 62) - 1;
-    LEAF_MASK:  u64 : (1 &lt;&lt; 31) - 1;
+    INNER_MASK: u64 : (<span class="codelit">1</span> &lt;&lt; <span class="codelit">62</span>) - <span class="codelit">1</span>;
+    LEAF_MASK:  u64 : (<span class="codelit">1</span> &lt;&lt; <span class="codelit">31</span>) - <span class="codelit">1</span>;
 
-    tag   := bvh_index.value &gt;&gt; 62;
+    tag := bvh_index.value &gt;&gt; <span class="codelit">62</span>;
 
-    inner_index := cast(s64, INNER_MASK & bvh_index.value);
-    leaf_start  := cast(s64, LEAF_MASK & (bvh_index.value >> 31));
-    leaf_end    := cast(s64, LEAF_MASK & bvh_index.value);
+    inner_index := <b>cast</b>(s64, INNER_MASK & bvh_index.value);
+    leaf_start  := <b>cast</b>(s64, LEAF_MASK & (bvh_index.value >> <span class="codelit">31</span>));
+    leaf_end    := <b>cast</b>(s64, LEAF_MASK & bvh_index.value);
 
-    i0 := ifx tag == TAG_LEAF then leaf_start else inner_index;
-    i1 := ifx tag == TAG_LEAF then leaf_end   else 0;
+    i0 := <b>ifx</b> tag == TAG_LEAF then leaf_start <b>else</b> inner_index;
+    i1 := <b>ifx</b> tag == TAG_LEAF then leaf_end   <b>else</b> <span class="codelit">0</span>;
 
-    return tag, i0, i1;
+    <b>return</b> tag, i0, i1;
 }
         </pre>
 
@@ -1217,62 +1216,62 @@ decompose_node_index :: (bvh_index: BVH_Index) -> tag: u64, i0: s64, i1: s64 {
 raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, max_bounces: s64) -> Vec3 {
     ray_origin    := primary_ray_origin;
     ray_direction := primary_ray_direction;
-    ray_color     := Vec3.{ 1, 1, 1 };
+    ray_color     := Vec3.{ <span class="codelit">1</span>, <span class="codelit">1</span>, <span class="codelit">1</span> };
 
-    for 0..max_bounces - 1 {
+    <b>for</b> <span class="codelit">0</span>..max_bounces - <span class="codelit">1</span> {
         hit_distance: f32 = FLOAT32_MAX;
         hit_normal:   Vec3;
         hit_material: Material;
 
         search_stack: [..] BVH_Index;
 
-        array_add(*search_stack, compose_inner_node_index(0)); // [0] is the root of the tree
+        array_add(*search_stack, compose_inner_node_index(<span class="codelit">0</span>)); <span class="codecomment">// [0] is the root of the tree</span>
 
-        while search_stack.count {
+        <b>while</b> search_stack.count {
             node_index := pop(*search_stack);
 
             node_tag, node_i0, node_i1 := decompose_node_index(node_index);
-            if node_tag == {
-                case BVH_Index.TAG_INNER; {
+            <b>if</b> node_tag == {
+                <b>case</b> BVH_Index.TAG_INNER; {
                     inner := *bvh.inner_nodes[node_i0];
 
                     hit_mask_x8, distance_x8 := SIMD_ray_aabox_intersection(ray_origin, ray_direction, inner.aabox_pack);
                     hit_mask_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
 
-                    for hit: hit_mask_x8 {
-                        if hit {
-                            array_add(*search_stack, inner.child_indices[it_index]);
+                    <b>for</b> hit: hit_mask_x8 {
+                        <b>if</b> hit {
+                            array_add(*search_stack, inner.child_indices[<b>it_index</b>]);
                         }
                     }
                 }
 
-                case BVH_Index.TAG_LEAF; {
-                    for node_i0..node_i1 - 1 {
-                        leaf := *bvh.leaf_nodes[it];
+                <b>case</b> BVH_Index.TAG_LEAF; {
+                    <b>for</b> node_i0..node_i1 - <span class="codelit">1</span> {
+                        leaf := *bvh.leaf_nodes[<b>it</b>];
 
-                        // The normal is actually not a sideproduct of the intersection code for triangles
-                        // (Moller-Trumbore), and we wouldn't normally compute it eagerly, but do so to
-                        // simplify the code.
+                        <span class="codecomment">// The normal is actually not a sideproduct of the intersection code for triangles</span>
+                        <span class="codecomment">// (Moller-Trumbore), and we wouldn't normally compute it eagerly, but do so to</span>
+                        <span class="codecomment">// simplify the code.</span>
                         hit_mask_x8, distance_x8, normal_x8 := SIMD_ray_triangle_intersection(ray_origin, ray_direction, leaf.triangle_pack);
 
                         hit_mask_x8 &= leaf.triangle_mask;
                         hit_mask_x8 &= SIMD_cmplt(distance_x8, SIMD_splat(hit_distance));
 
-                        if SIMD_mask_is_zeroed(hit_mask_x8) {
-                            continue;
+                        <b>if</b> SIMD_mask_is_zeroed(hit_mask_x8) {
+                            <b>continue</b>;
                         }
 
                         distance_min_x8 := SIMD_select(hit_mask_x8, distance, SIMD_splat(FLOAT32_MAX));
                         distance_min    := SIMD_horizontal_min(distance_min_x8);
 
-                        if distance_min &lt; hit_distance {
-                            // TODO(jt): @Cleanup @Speed Is there a better way of extracting the index?
-                            // Is there a SIMD Bit_Scan? I actually don't know. Mail me, if you do!
+                        <b>if</b> distance_min &lt; hit_distance {
+                            <span class="codecomment">// TODO(jt): @Cleanup @Speed Is there a better way of extracting the index?</span>
+                            <span class="codecomment">// Is there a SIMD Bit_Scan? I actually don't know. Mail me, if you do!</span>
                             closest_index: s64;
-                            for distance: distance_min_x8 {
-                                if distance == distance_min {
-                                    closest_index = it_index;
-                                    break;
+                            <b>for</b> distance: distance_min_x8 {
+                                <b>if</b> distance == distance_min {
+                                    closest_index = <b>it_index</b>;
+                                    <b>break</b>;
                                 }
                             }
 
@@ -1285,23 +1284,23 @@ raytrace :: (bvh: BVH, primary_ray_origin: Vec3, primary_ray_direction: Vec3, ma
             }
         }
 
-        if hit_distance == FLOAT32_MAX {
-           // The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...
-           ray_color *= { 0.2, 0.1, 0.4 };
-           return ray_color;
+        <b>if</b> hit_distance == FLOAT32_MAX {
+           <span class="codecomment">// The ray didn't hit anything. Multiply by background color. We could sample a skybox instead...</span>
+           ray_color *= { <span class="codelit">0.2</span>, <span class="codelit">0.1</span>, <span class="codelit">0.4</span> };
+           <b>return</b> ray_color;
         }
 
-        if hit_material.type == .LIGHT_SOURCE {
+        <b>if</b> hit_material.type == .LIGHT_SOURCE {
             ray_color *= hit_material.color;
-            return ray_color;
-        } else {
+            <b>return</b> ray_color;
+        } <b>else</b> {
             ray_color = attenuate(ray_color, ray_direction, hit_normal, hit_material);
             ray_origin, ray_direction = bounce(ray_origin, ray_direction, hit_distance, hit_normal, hit_material);
         }
     }
 
-    // We ran out of bounces and haven't hit a light.
-    return { 0, 0, 0 };
+    <span class="codecomment">// We ran out of bounces and haven't hit a light.</span>
+    <b>return</b> { <span class="codelit">0</span>, <span class="codelit">0</span>, <span class="codelit">0</span> };
 }
     </pre>
 
