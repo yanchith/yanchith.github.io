@@ -16,6 +16,7 @@
     <section>
       <div>
         <h1>Writing a SIMD Raytracer</h1>
+        <h2>A Meal of Many Courses</h2>
       </div>
       <div><!-- EMPTY --></div>
 
@@ -42,11 +43,7 @@
           2025), that work is still the most focused nugget of technical work I have done. This was
           quite the luxury for me as I usually don't get to concentrate on doing single part of a
           larger system well, and instead have to prioritize what is the most valuable thing to work
-          on. This was a happy and rare exception. Also note that I am a generalist, and don't
-          consider myself deeply knowledgeable in computer graphics. I am painfully aware that I
-          could have missed an obvious technique that could have made the results better. I'd be
-          happy to receive your email with any feedback on the technical (and non-technical)
-          contents of this article.
+          on. A happy and rare exception.
         </p>
       </div>
       <div><!-- EMPTY --></div>
@@ -582,7 +579,10 @@ bounce    :: (ray_origin: Vec3, ray_direction: Vec3, hit_distance: f32, hit_norm
         <picture>
           <img src="./0010-bvh.png" sizes="100vw"
                srcset="./0010-bvh.png 1000w" />
-          <p>Tree hierarchy (left); Geometry view (right)</p>
+          <p>
+            Tree hierarchy (left); Geometry view (right). Note how bounding boxes of the child nodes
+            can overlap, but are contained in the bounding box of the parent node.
+          </p>
         </picture>
       </div>
 
@@ -1074,7 +1074,10 @@ Inner_Node_X8 :: <b>struct</b> {
         <picture>
           <img src="./0010-wide_bvh.png" sizes="100vw"
                srcset="./0010-wide_bvh.png 1000w" />
-          <p>Regular BVH to wide BVH transformation.</p>
+          <p>
+            Regular BVH to wide BVH transformation. Wide node on the right has indices from the
+            third row and bounding boxes from the fourth row on the left.
+          </p>
         </picture>
       </div>
 
