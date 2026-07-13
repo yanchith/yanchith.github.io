@@ -68,7 +68,7 @@ main a:hover {
     text-decoration: underline;
 }
 
-main p a {
+main a {
     text-decoration: underline;
 }
 
@@ -102,7 +102,7 @@ main > pre {
     overflow-x: auto;
 }
 
-main > pre > b {
+main b {
     font-family: "LiberationMono-Bold";
     font-weight: bold;
 }
@@ -115,11 +115,6 @@ main section pre {
     border: 1px solid #e0e0e0;
 
     overflow-x: auto;
-}
-
-main section pre > b {
-    font-family: "LiberationMono-Bold";
-    font-weight: bold;
 }
 
 span.codelit {
@@ -205,7 +200,12 @@ footer p {
 }
 
 .postlink {
+    text-decoration: none;
     font-size: 30px;
+}
+
+a.postlink:hover {
+    text-decoration: underline;
 }
 
 .mt25 {
