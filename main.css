@@ -50,6 +50,18 @@ body {
     padding: 20px 90px;
 }
 
+a {
+    text-decoration: underline;
+}
+
+footer a {
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
 header h1 {
     margin-top: 50px;
     margin-bottom: 50px;
@@ -62,14 +74,6 @@ main h1 {
     margin-bottom: 50px;
     font-size: 45px;
     font-weight: bold;
-}
-
-main a:hover {
-    text-decoration: underline;
-}
-
-main a {
-    text-decoration: underline;
 }
 
 main section {
@@ -204,7 +208,7 @@ footer p {
     font-size: 30px;
 }
 
-a.postlink:hover {
+.postlink:hover {
     text-decoration: underline;
 }
 
